@@ -1,0 +1,202 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Invites - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6" x-data="guestsApp()" x-init="init()">
+
+  <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Gestion des invites</h1>
+      <p class="text-gray-500 text-sm"><span x-text="guests.length"></span> invite(s)</p>
+    </div>
+    <a href="/dashboard/" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
+      <i class="fas fa-arrow-left mr-1"></i>Retour
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+      <p class="text-xs text-gray-500 uppercase">Total</p>
+      <p class="text-3xl font-bold text-blue-600" x-text="guests.length">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-xs text-gray-500 uppercase">Entres</p>
+      <p class="text-3xl font-bold text-green-600" x-text="guests.filter(g => g.is_checked_in).length">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
+      <p class="text-xs text-gray-500 uppercase">Couples</p>
+      <p class="text-3xl font-bold text-orange-600" x-text="guests.filter(g => g.status === 'couple').length">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
+      <p class="text-xs text-gray-500 uppercase">Personnes</p>
+      <p class="text-3xl font-bold text-purple-600" x-text="guests.reduce((s, g) => s + (g.status === 'couple' ? 2 : 1), 0)">-</p>
+    </div>
+  </div>
+
+  <!-- Barre recherche -->
+  <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+    <div class="flex flex-col md:flex-row gap-3">
+      <div class="flex-1 relative">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input type="text" x-model="search" placeholder="Rechercher..." class="w-full pl-10 pr-4 py-2 border rounded-lg">
+      </div>
+      <select x-model="filter" class="px-3 py-2 border rounded-lg">
+        <option value="all">Tous</option>
+        <option value="in">Entres</option>
+        <option value="out">Non entres</option>
+        <option value="couple">Couples</option>
+        <option value="single">Celibataires</option>
+        <option value="groom">Cote marie</option>
+        <option value="bride">Cote mariee</option>
+        <option value="blocked">Bloques</option>
+      </select>
+      <button @click="load()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
+        <i class="fas fa-sync-alt mr-1"></i>Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Tableau -->
+  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b">
+          <tr>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Nom</th>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Statut</th>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Table</th>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Cote</th>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Telephone</th>
+            <th class="text-center px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Entree</th>
+            <th class="text-right px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="g in filteredGuests" :key="g.id">
+            <tr class="border-b hover:bg-gray-50">
+              <td class="px-4 py-3 font-medium text-gray-800" x-text="g.name"></td>
+              <td class="px-4 py-3">
+                <span :class="g.status === 'couple' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'" class="px-2 py-1 rounded-full text-xs font-medium" x-text="g.status_display"></span>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600" x-text="g.table_name || '-'"></td>
+              <td class="px-4 py-3">
+                <span :class="{'bg-indigo-100 text-indigo-700': g.family === 'groom', 'bg-pink-100 text-pink-700': g.family === 'bride', 'bg-gray-100 text-gray-500': !g.family}" class="px-2 py-1 rounded text-xs font-medium" x-text="g.family === 'groom' ? 'Marie' : (g.family === 'bride' ? 'Mariee' : '-')"></span>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600" x-text="g.phone || '-'"></td>
+              <td class="px-4 py-3 text-center">
+                <button @click="toggleCheckin(g)" :class="g.is_checked_in ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'" class="px-3 py-1 rounded-full text-xs font-medium hover:opacity-80">
+                  <i :class="g.is_checked_in ? 'fas fa-check' : 'far fa-circle'"></i>
+                  <span x-text="g.is_checked_in ? 'Oui' : 'Non'"></span>
+                </button>
+              </td>
+              <td class="px-4 py-3 text-right">
+                <div class="inline-flex gap-1">
+                  <a :href="g.whatsapp_url" target="_blank" class="p-2 text-green-600 hover:bg-green-50 rounded" title="WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                  </a>
+                  <a :href="g.invitation_url" target="_blank" class="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Voir">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <button @click="openQrModal(g)" class="p-2 text-purple-600 hover:bg-purple-50 rounded" title="QR">
+                    <i class="fas fa-qrcode"></i>
+                  </button>
+                  <button @click="deleteGuest(g)" class="p-2 text-red-600 hover:bg-red-50 rounded" title="Supprimer">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="filteredGuests.length === 0">
+            <td colspan="7" class="text-center py-12 text-gray-400">
+              <i class="fas fa-inbox text-5xl mb-3"></i>
+              <p class="font-medium">Aucun invite</p>
+              <p class="text-sm mt-1">Ajoutez des invites depuis le dashboard</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal QR -->
+  <div x-show="qr.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="qr.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center">
+      <h3 class="text-xl font-bold mb-2" x-text="qr.guest ? qr.guest.name : ''"></h3>
+      <p class="text-gray-500 text-sm mb-4" x-text="qr.guest ? qr.guest.status_display + ' - ' + (qr.guest.table_name || 'sans table') : ''"></p>
+      <img :src="qr.guest ? qr.guest.qr_url : ''" class="mx-auto w-64 h-64 border rounded-lg">
+      <div class="flex gap-2 mt-6">
+        <a :href="qr.guest ? qr.guest.qr_download_url : '#'" class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700">
+          <i class="fas fa-download mr-1"></i>Telecharger
+        </a>
+        <button @click="qr.show = false" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function guestsApp() {
+  return {
+    guests: [],
+    search: '',
+    filter: 'all',
+    qr: { show: false, guest: null },
+    async init() {
+      await this.load();
+    },
+    async load() {
+      try {
+        const r = await fetch('/dashboard/api/guests/');
+        if (!r.ok) {
+          console.error('HTTP error', r.status);
+          return;
+        }
+        const data = await r.json();
+        this.guests = data.guests || [];
+      } catch(e) {
+        console.error('Load error:', e);
+      }
+    },
+    get filteredGuests() {
+      const q = this.search.toLowerCase();
+      return this.guests.filter(g => {
+        if (q && !g.name.toLowerCase().includes(q) && !(g.phone || '').includes(q) && !(g.table_name || '').toLowerCase().includes(q)) return false;
+        if (this.filter === 'in' && !g.is_checked_in) return false;
+        if (this.filter === 'out' && g.is_checked_in) return false;
+        if (this.filter === 'couple' && g.status !== 'couple') return false;
+        if (this.filter === 'single' && g.status !== 'single') return false;
+        if (this.filter === 'groom' && g.family !== 'groom') return false;
+        if (this.filter === 'bride' && g.family !== 'bride') return false;
+        if (this.filter === 'blocked' && !g.is_blocked) return false;
+        return true;
+      });
+    },
+    openQrModal(g) {
+      this.qr.guest = g;
+      this.qr.show = true;
+    },
+    async toggleCheckin(g) {
+      const r = await fetch(`/dashboard/api/guests/${g.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ is_checked_in: !g.is_checked_in }),
+      });
+      if (r.ok) await this.load();
+    },
+    async deleteGuest(g) {
+      if (!confirm('Supprimer ' + g.name + ' ?')) return;
+      const r = await fetch(`/dashboard/api/guests/${g.id}/delete/`, {
+        method: 'POST', headers: { 'X-CSRFToken': this.csrf() },
+      });
+      if (r.ok) await this.load();
+    },
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

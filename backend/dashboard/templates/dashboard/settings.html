@@ -1,0 +1,90 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Configuration - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6" x-data="settingsApp()" x-init="load()">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Configuration de la salle</h1>
+    <p class="text-gray-500 text-sm">Parametres globaux de votre evenement</p>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+      <i class="fas fa-building text-brand-600 mr-2"></i> Informations de la salle
+    </h2>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nom de la salle</label>
+        <input type="text" x-model="form.name" placeholder="ex: Salle Panafricaine" class="w-full px-3 py-2 border rounded-lg">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+        <input type="text" x-model="form.address" placeholder="ex: Cite Verte, Selembao, Kinshasa" class="w-full px-3 py-2 border rounded-lg">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Capacite totale (personnes)</label>
+          <input type="number" x-model.number="form.total_capacity" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre max d'invites</label>
+          <input type="number" x-model.number="form.max_guests" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <textarea x-model="form.notes" rows="3" placeholder="Notes internes..." class="w-full px-3 py-2 border rounded-lg"></textarea>
+      </div>
+    </div>
+    <div class="mt-6 flex justify-end">
+      <button @click="save()" :disabled="saving" class="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+        <span x-show="!saving"><i class="fas fa-save mr-2"></i>Enregistrer</span>
+        <span x-show="saving"><i class="fas fa-spinner fa-spin"></i></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+    <div class="flex items-start gap-3">
+      <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+      <div class="text-sm text-blue-800">
+        <p class="font-semibold mb-1">A propos des tables</p>
+        <p>La gestion des tables se fait depuis <a href="/dashboard/tables/" class="underline font-medium">/dashboard/tables/</a>.
+           Vous pouvez y creer des tables, definir leur capacite, les assigner a une famille (marie/mariee/neutre).</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function settingsApp() {
+  return {
+    form: { name: '', address: '', total_capacity: 200, max_guests: 200, notes: '' },
+    saving: false,
+    async load() {
+      const r = await fetch('/dashboard/api/settings/');
+      this.form = await r.json();
+    },
+    async save() {
+      this.saving = true;
+      try {
+        const r = await fetch('/dashboard/api/settings/update/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify(this.form),
+        });
+        if (!r.ok) throw new Error('Erreur');
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Configuration enregistree', type: 'success' } }));
+      } catch (e) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: e.message, type: 'error' } }));
+      } finally { this.saving = false; }
+    },
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

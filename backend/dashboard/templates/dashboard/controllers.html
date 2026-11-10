@@ -1,0 +1,233 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Controleurs - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6" x-data="controllersApp()" x-init="load()">
+
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Gestion des controleurs</h1>
+      <p class="text-gray-500 text-sm">2 a 5 comptes controleurs Â· 1 seul appareil par controleur</p>
+    </div>
+    <button @click="openAddModal()"
+            :disabled="controllers.length >= 5"
+            :class="controllers.length >= 5 ? 'bg-gray-300 cursor-not-allowed' : 'bg-brand-600 hover:bg-brand-700'"
+            class="px-4 py-2 text-white rounded-lg flex items-center gap-2">
+      <i class="fas fa-plus"></i> Nouveau controleur
+    </button>
+  </div>
+
+  <!-- Info box -->
+  <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 mb-6 rounded">
+    <div class="flex items-start gap-3">
+      <i class="fas fa-info-circle mt-0.5"></i>
+      <div class="text-sm">
+        <p><strong>Fonctionnement :</strong></p>
+        <ul class="list-disc list-inside mt-1 space-y-1">
+          <li>Chaque controleur a son propre login/mot de passe</li>
+          <li>Il ne peut etre connecte que sur <strong>1 seul appareil</strong> a la fois</li>
+          <li>Si vous cliquez sur <strong>Revoquer</strong>, l'acces est immediatement coupe</li>
+          <li>Les controleurs ne peuvent PAS acceder a l'admin ni au dashboard</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau -->
+  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <table class="w-full">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Controleur</th>
+          <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Login</th>
+          <th class="text-center px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Statut</th>
+          <th class="text-center px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Session</th>
+          <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Derniere IP</th>
+          <th class="text-right px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="c in controllers" :key="c.id">
+          <tr class="border-b border-gray-100 hover:bg-gray-50">
+            <td class="px-4 py-3 font-medium text-gray-800" x-text="c.display_name"></td>
+            <td class="px-4 py-3 text-gray-600 font-mono text-sm" x-text="c.username"></td>
+            <td class="px-4 py-3 text-center">
+              <span :class="c.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                    class="px-2 py-1 rounded-full text-xs font-medium"
+                    x-text="c.is_active ? 'Actif' : 'Revoque'"></span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span x-show="c.is_logged_in" class="text-xs text-green-600">
+                <i class="fas fa-circle text-[6px] align-middle"></i> En ligne
+              </span>
+              <span x-show="!c.is_logged_in" class="text-xs text-gray-400">
+                <i class="far fa-circle text-[6px] align-middle"></i> Hors ligne
+              </span>
+            </td>
+            <td class="px-4 py-3 text-xs text-gray-500 font-mono" x-text="c.last_login_ip || '-'"></td>
+            <td class="px-4 py-3 text-right">
+              <div class="inline-flex gap-1">
+                <button @click="openEditModal(c)" class="p-2 text-gray-600 hover:bg-gray-100 rounded" title="Editer">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button @click="revoke(c)" :disabled="!c.is_logged_in"
+                        :class="c.is_logged_in ? 'text-orange-600 hover:bg-orange-50' : 'text-gray-300'"
+                        class="p-2 rounded" title="Revoquer la session">
+                  <i class="fas fa-sign-out-alt"></i>
+                </button>
+                <button @click="toggleActive(c)" :class="c.is_active ? 'text-yellow-600 hover:bg-yellow-50' : 'text-green-600 hover:bg-green-50'"
+                        class="p-2 rounded" :title="c.is_active ? 'Desactiver' : 'Activer'">
+                  <i :class="c.is_active ? 'fas fa-ban' : 'fas fa-check'"></i>
+                </button>
+                <button @click="deleteController(c)" class="p-2 text-red-600 hover:bg-red-50 rounded" title="Supprimer">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="controllers.length === 0">
+          <td colspan="6" class="text-center py-8 text-gray-400">
+            <i class="fas fa-users-slash text-4xl mb-2"></i>
+            <p>Aucun controleur cree</p>
+            <p class="text-xs mt-1">Cliquez sur "Nouveau controleur" pour commencer</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal ajout/edit -->
+  <div x-show="modal.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="modal.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <h3 class="text-xl font-bold mb-4" x-text="modal.editId ? 'Modifier le controleur' : 'Nouveau controleur'"></h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nom affiche *</label>
+          <input type="text" x-model="modal.form.display_name" placeholder="ex: Controleur Porte A" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Login *</label>
+          <input type="text" x-model="modal.form.username" :disabled="!!modal.editId"
+                 placeholder="ex: porte_a" class="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <span x-text="modal.editId ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe *'"></span>
+          </label>
+          <input type="text" x-model="modal.form.password" placeholder="min 6 caracteres" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+        </div>
+        <p x-show="!modal.editId" class="text-xs text-gray-500">
+          <i class="fas fa-info-circle"></i> Le controleur se connectera sur <code class="bg-gray-100 px-1 rounded">/controleur/login/</code>
+        </p>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button @click="modal.show = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+        <button @click="save()" :disabled="modal.saving" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+          <span x-show="!modal.saving"><i class="fas fa-save mr-1"></i> Enregistrer</span>
+          <span x-show="modal.saving"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function controllersApp() {
+  return {
+    controllers: [],
+    modal: { show: false, editId: null, saving: false, form: { display_name: '', username: '', password: '' } },
+
+    async load() {
+      const r = await fetch('/dashboard/api/controllers/');
+      const data = await r.json();
+      this.controllers = data.controllers || [];
+    },
+
+    openAddModal() {
+      this.modal.editId = null;
+      this.modal.form = { display_name: '', username: '', password: '' };
+      this.modal.show = true;
+    },
+
+    openEditModal(c) {
+      this.modal.editId = c.id;
+      this.modal.form = { display_name: c.display_name, username: c.username, password: '' };
+      this.modal.show = true;
+    },
+
+    async save() {
+      if (!this.modal.form.display_name.trim()) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Nom requis', type: 'error' } }));
+        return;
+      }
+      this.modal.saving = true;
+      try {
+        let url, body;
+        if (this.modal.editId) {
+          url = `/dashboard/api/controllers/${this.modal.editId}/update/`;
+          body = { display_name: this.modal.form.display_name };
+          if (this.modal.form.password) body.new_password = this.modal.form.password;
+        } else {
+          url = '/dashboard/api/controllers/create/';
+          body = this.modal.form;
+        }
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Erreur');
+        this.modal.show = false;
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Enregistre', type: 'success' } }));
+      } catch (e) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: e.message, type: 'error' } }));
+      } finally {
+        this.modal.saving = false;
+      }
+    },
+
+    async revoke(c) {
+      if (!confirm(`Revoquer la session de ${c.display_name} ? L'appareil sera deconnecte immediatement.`)) return;
+      const r = await fetch(`/dashboard/api/controllers/${c.id}/revoke/`, {
+        method: 'POST', headers: { 'X-CSRFToken': this.csrf() },
+      });
+      if (r.ok) {
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Session revoquee', type: 'success' } }));
+      }
+    },
+
+    async toggleActive(c) {
+      const r = await fetch(`/dashboard/api/controllers/${c.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ is_active: !c.is_active }),
+      });
+      if (r.ok) {
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: c.is_active ? 'Desactive' : 'Active', type: 'success' } }));
+      }
+    },
+
+    async deleteController(c) {
+      if (!confirm(`Supprimer definitivement ${c.display_name} ? Le compte sera supprime.`)) return;
+      const r = await fetch(`/dashboard/api/controllers/${c.id}/delete/`, {
+        method: 'POST', headers: { 'X-CSRFToken': this.csrf() },
+      });
+      if (r.ok) {
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Supprime', type: 'success' } }));
+      }
+    },
+
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

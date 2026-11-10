@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitation - {{ couple_groom }} & {{ couple_bride }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;1,400&family=Dancing+Script:wght@400;600;700&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --blue-100:#E1EFF7; --blue-200:#C5DDEC; --blue-400:#7BA8C9; --pink-100:#FCE4EC; --pink-200:#F5C6D6; --pink-400:#E89CB5; --gold:#C9A961; --gold-light:#E5C88A; --text:#3E3E50; --text-light:#7A7A8C; }
+    body { font-family:'Montserrat',sans-serif; color:var(--text); background:linear-gradient(180deg,#FEF5F8 0%,#F4F9FD 50%,#FEF5F8 100%); background-attachment:fixed; min-height:100vh; overflow-x:hidden; }
+    #particles-canvas { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+    .content-wrap { position:relative; z-index:2; }
+    .hero { min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:60px 20px; background:radial-gradient(ellipse at center,rgba(255,255,255,0.6) 0%,transparent 70%); }
+    .hero-content { max-width:750px; width:100%; }
+    .families { font-family:'Cormorant Garamond',serif; font-size:15px; letter-spacing:7px; color:var(--gold); text-transform:uppercase; margin-bottom:25px; opacity:0; animation:fadeInUp 1.2s ease-out 0.3s forwards; }
+    .ornament { font-size:22px; color:var(--gold); margin:12px 0; opacity:0; animation:fadeIn 1s ease-out 0.5s forwards; }
+    .ornament::before, .ornament::after { content:''; display:inline-block; width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); vertical-align:middle; margin:0 15px; }
+    .couple-names { font-family:'Cormorant Garamond',serif; font-size:clamp(52px,11vw,96px); font-weight:400; line-height:1; color:var(--text); margin:25px 0; opacity:0; animation:fadeInScale 1.5s cubic-bezier(0.4,0,0.2,1) 0.7s forwards; }
+    .ampersand { font-family:'Dancing Script',cursive; color:var(--pink-400); font-size:0.75em; display:inline-block; margin:0 8px; animation:pulse 3s ease-in-out infinite 2s; }
+    .quote { font-family:'Dancing Script',cursive; font-size:clamp(20px,4vw,28px); color:var(--pink-400); margin:35px auto 25px; max-width:500px; line-height:1.4; opacity:0; animation:fadeInUp 1.2s ease-out 1.4s forwards; }
+    .date-badge { display:inline-block; padding:14px 38px; border:1.5px solid var(--gold); border-radius:40px; font-size:13px; letter-spacing:5px; color:var(--gold); background:rgba(255,255,255,0.7); backdrop-filter:blur(10px); opacity:0; animation:fadeInUp 1.2s ease-out 1.8s forwards; margin-top:15px; }
+    .scroll-hint { position:absolute; bottom:30px; left:50%; transform:translateX(-50%); color:var(--gold); opacity:0; animation:fadeIn 1s ease-out 2.5s forwards; text-align:center; }
+    .scroll-hint i { display:block; font-size:20px; margin-bottom:4px; }
+    .scroll-hint span { font-size:9px; letter-spacing:4px; }
+    section { padding:90px 20px; max-width:820px; margin:0 auto; }
+    .section-title { font-family:'Cormorant Garamond',serif; font-size:clamp(32px,6vw,46px); font-weight:400; text-align:center; color:var(--text); margin-bottom:12px; }
+    .section-title::after { content:'âœ¦'; display:block; font-size:16px; color:var(--gold); margin-top:12px; }
+    .section-subtitle { text-align:center; color:var(--text-light); font-size:12px; letter-spacing:4px; text-transform:uppercase; margin-bottom:55px; }
+    .reveal { opacity:0; transform:translateY(45px); transition:opacity 1s ease-out,transform 1s ease-out; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+    .intro { text-align:center; }
+    .intro p { font-family:'Cormorant Garamond',serif; font-size:clamp(18px,3.5vw,23px); line-height:1.8; font-style:italic; max-width:650px; margin:0 auto; }
+    .countdown { display:flex; justify-content:center; gap:18px; margin:30px 0; flex-wrap:wrap; }
+    .countdown-item { background:rgba(255,255,255,0.85); backdrop-filter:blur(10px); border-radius:18px; padding:22px 26px; min-width:95px; border:1px solid rgba(255,255,255,1); box-shadow:0 4px 20px rgba(180,200,220,0.18); text-align:center; }
+    .countdown-num { font-family:'Cormorant Garamond',serif; font-size:42px; font-weight:600; color:var(--pink-400); line-height:1; }
+    .countdown-label { font-size:10px; letter-spacing:3px; color:var(--text-light); text-transform:uppercase; margin-top:10px; }
+    .timeline { position:relative; padding-left:20px; }
+    .timeline::before { content:''; position:absolute; left:40px; top:20px; bottom:20px; width:1px; background:linear-gradient(180deg,var(--blue-200),var(--pink-200),var(--gold-light),var(--pink-200),var(--blue-200)); }
+    .timeline-item { position:relative; padding-left:85px; margin-bottom:40px; opacity:0; transform:translateX(-30px); transition:opacity 0.8s ease-out,transform 0.8s ease-out; }
+    .timeline-item.visible { opacity:1; transform:translateX(0); }
+    .timeline-icon { position:absolute; left:20px; top:6px; width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,var(--blue-100),var(--pink-100)); border:2px solid var(--gold-light); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:15px; box-shadow:0 4px 14px rgba(201,169,97,0.25); z-index:2; }
+    .timeline-content { background:rgba(255,255,255,0.85); backdrop-filter:blur(12px); padding:22px 26px; border-radius:18px; border:1px solid rgba(255,255,255,0.9); box-shadow:0 6px 24px rgba(180,200,220,0.18); }
+    .timeline-content h3 { font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; margin-bottom:6px; }
+    .timeline-date { font-size:13px; color:var(--pink-400); letter-spacing:1px; margin-bottom:8px; font-weight:500; }
+    .timeline-place { font-size:14px; color:var(--text-light); }
+    .timeline-place i { color:var(--gold); margin-right:8px; }
+    .theme-card { background:linear-gradient(135deg,rgba(244,249,253,0.92),rgba(254,245,248,0.92)); backdrop-filter:blur(12px); border-radius:26px; padding:55px 30px; text-align:center; border:1px solid rgba(255,255,255,0.9); box-shadow:0 10px 40px rgba(180,200,220,0.22); }
+    .theme-label { font-size:11px; letter-spacing:5px; color:var(--gold); text-transform:uppercase; margin-bottom:10px; }
+    .theme-title { font-family:'Dancing Script',cursive; font-size:clamp(54px,11vw,82px); color:var(--pink-400); line-height:1; margin-bottom:32px; }
+    .dress-code { display:flex; align-items:center; justify-content:center; gap:22px; flex-wrap:wrap; }
+    .color-chip { width:64px; height:64px; border-radius:50%; border:3px solid white; box-shadow:0 6px 20px rgba(0,0,0,0.12); animation:float 4s ease-in-out infinite; }
+    .color-chip.blue { background:var(--blue-200); }
+    .color-chip.pink { background:var(--pink-200); animation-delay:2s; }
+    .dress-code-text { font-family:'Cormorant Garamond',serif; font-size:20px; font-style:italic; width:100%; margin-top:22px; }
+    .guest-card { background:rgba(255,255,255,0.9); backdrop-filter:blur(16px); border-radius:26px; padding:45px 30px; text-align:center; border:1px solid rgba(255,255,255,1); box-shadow:0 10px 40px rgba(180,200,220,0.25); }
+    .guest-label { font-size:11px; letter-spacing:5px; color:var(--gold); text-transform:uppercase; margin-bottom:14px; }
+    .guest-name { font-family:'Cormorant Garamond',serif; font-size:clamp(30px,6vw,42px); margin-bottom:22px; font-weight:500; }
+    .guest-badges { display:flex; justify-content:center; gap:10px; margin-bottom:32px; flex-wrap:wrap; }
+    .badge { padding:9px 22px; border-radius:30px; font-size:12px; font-weight:500; letter-spacing:1px; }
+    .badge-couple { background:linear-gradient(135deg,var(--pink-100),var(--pink-200)); color:#B55A7A; }
+    .badge-single { background:linear-gradient(135deg,var(--blue-100),var(--blue-200)); color:#4A7A9C; }
+    .badge-table { background:linear-gradient(135deg,#FBF6E8,var(--gold-light)); color:#8A6D2E; }
+    .qr-wrapper { display:inline-block; padding:20px; background:white; border-radius:22px; box-shadow:0 8px 30px rgba(180,200,220,0.25); margin-bottom:25px; position:relative; }
+    .qr-wrapper::before { content:''; position:absolute; inset:-5px; border-radius:26px; background:linear-gradient(135deg,var(--blue-200),var(--pink-200),var(--gold-light),var(--blue-200)); z-index:-1; animation:rotate 10s linear infinite; opacity:0.7; }
+    .qr-wrapper img { display:block; width:220px; height:220px; border-radius:14px; }
+    .qr-hint { font-family:'Dancing Script',cursive; font-size:19px; color:var(--pink-400); margin-bottom:22px; }
+    .btn { display:inline-flex; align-items:center; gap:10px; padding:15px 34px; background:linear-gradient(135deg,var(--gold),var(--gold-light)); color:white; text-decoration:none; border-radius:40px; font-size:13px; font-weight:500; letter-spacing:2px; box-shadow:0 6px 22px rgba(201,169,97,0.35); transition:transform 0.3s ease; cursor:pointer; border:none; font-family:inherit; }
+    .btn:hover { transform:translateY(-2px); }
+    .btn-secondary { background:linear-gradient(135deg,var(--pink-400),var(--pink-200)); box-shadow:0 6px 22px rgba(232,156,181,0.35); }
+    .card-section { background:rgba(255,255,255,0.9); backdrop-filter:blur(16px); border-radius:26px; padding:40px 30px; border:1px solid rgba(255,255,255,1); box-shadow:0 10px 40px rgba(180,200,220,0.2); }
+    .card-section h3 { font-family:'Cormorant Garamond',serif; font-size:26px; margin-bottom:8px; text-align:center; }
+    .card-section .desc { text-align:center; color:var(--text-light); font-size:14px; margin-bottom:25px; }
+    .form-group { margin-bottom:15px; }
+    .form-group label { display:block; font-size:13px; font-weight:500; color:var(--text); margin-bottom:6px; }
+    .form-group input, .form-group textarea, .form-group select { width:100%; padding:12px 15px; border:1.5px solid #e0e0e0; border-radius:10px; font-family:inherit; font-size:14px; transition:border-color 0.2s; }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline:none; border-color:var(--pink-400); }
+    .form-group textarea { resize:vertical; min-height:100px; }
+    .confirm-choices { display:flex; gap:10px; margin-top:10px; }
+    .confirm-choice { flex:1; padding:15px; border:2px solid #e0e0e0; border-radius:12px; cursor:pointer; text-align:center; transition:all 0.2s; background:white; }
+    .confirm-choice:hover { border-color:var(--pink-200); }
+    .confirm-choice.selected { border-color:var(--pink-400); background:var(--pink-100); }
+    .confirm-choice i { font-size:24px; color:var(--pink-400); display:block; margin-bottom:8px; }
+    .confirm-choice strong { display:block; font-size:15px; margin-bottom:2px; }
+    .confirm-choice small { color:var(--text-light); font-size:11px; }
+    .status-badge { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:20px; font-size:13px; font-weight:500; margin-bottom:20px; }
+    .status-confirmed { background:linear-gradient(135deg,#d4edda,#c3e6cb); color:#155724; }
+    .status-pending { background:linear-gradient(135deg,#fff3cd,#ffeaa7); color:#856404; }
+    .drink-list { display:grid; gap:10px; margin-bottom:20px; }
+    .drink-item { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:#fafafa; border-radius:10px; border:1px solid #eee; }
+    .drink-item-info strong { display:block; font-size:14px; }
+    .drink-item-info small { color:var(--text-light); font-size:12px; }
+    .qty-control { display:flex; align-items:center; gap:8px; }
+    .qty-btn { width:28px; height:28px; border-radius:50%; border:1px solid #ddd; background:white; cursor:pointer; color:var(--text); font-weight:600; }
+    .qty-btn:hover { background:var(--pink-100); }
+    .wish-list { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    .wish-card { background:linear-gradient(135deg,#fce4ec,#e1eff7); border-radius:12px; padding:14px 18px; border-left:3px solid var(--pink-400); }
+    .wish-card p { font-size:14px; margin-bottom:6px; font-style:italic; color:#4a4a5e; }
+    .wish-card small { color:var(--text-light); font-size:12px; }
+    .map-wrapper { border-radius:16px; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,0.1); margin-bottom:15px; }
+    .map-wrapper iframe { width:100%; height:280px; border:0; display:block; }
+    .map-buttons { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+    .map-btn { flex:1; min-width:140px; padding:12px; background:white; border:1.5px solid var(--blue-200); border-radius:10px; text-align:center; font-size:13px; text-decoration:none; color:var(--text); transition:all 0.2s; }
+    .map-btn:hover { background:var(--blue-100); border-color:var(--blue-400); }
+    .map-btn i { color:var(--blue-400); margin-right:6px; }
+    .order-status { display:inline-block; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:500; }
+    .order-status-pending { background:#fff3cd; color:#856404; }
+    .order-status-preparing { background:#cfe2ff; color:#084298; }
+    .order-status-served { background:#d1e7dd; color:#0f5132; }
+    footer { text-align:center; padding:70px 20px 50px; }
+    footer p { font-family:'Dancing Script',cursive; font-size:24px; color:var(--pink-400); margin-bottom:16px; }
+    .footer-families { font-family:'Cormorant Garamond',serif; font-size:13px; letter-spacing:6px; color:var(--gold); text-transform:uppercase; }
+    .toast-notif { position:fixed; bottom:20px; right:20px; padding:15px 22px; border-radius:12px; color:white; font-size:14px; box-shadow:0 6px 24px rgba(0,0,0,0.15); opacity:0; transform:translateY(20px); transition:all 0.3s; z-index:1000; max-width:320px; }
+    .toast-notif.show { opacity:1; transform:translateY(0); }
+    .toast-success { background:#28a745; }
+    .toast-error { background:#dc3545; }
+    .toast-info { background:#17a2b8; }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    @keyframes fadeInScale { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
+    @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.15); } }
+    @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
+    @keyframes rotate { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+    @media (max-width:600px) {
+      section { padding:60px 16px; }
+      .timeline { padding-left:0; } .timeline::before { left:20px; }
+      .timeline-item { padding-left:65px; } .timeline-icon { left:0; }
+      .qr-wrapper img { width:180px; height:180px; }
+      .countdown { gap:10px; } .countdown-item { padding:16px 18px; min-width:75px; }
+      .countdown-num { font-size:32px; }
+      .families { letter-spacing:4px; font-size:13px; }
+      .card-section { padding:30px 20px; }
+    }
+  </style>
+</head>
+<body>
+<canvas id="particles-canvas"></canvas>
+<div class="content-wrap">
+
+  <section class="hero">
+    <div class="hero-content">
+      <div class="families">{{ families }}</div>
+      <div class="ornament">âœ¦</div>
+      <h1 class="couple-names">{{ couple_groom }}<span class="ampersand">&</span>{{ couple_bride }}</h1>
+      <p class="quote">&laquo; Deux &acirc;mes, un destin. Un amour pour l'&eacute;ternit&eacute;. &raquo;</p>
+      <div class="date-badge">{{ main_date|upper }}</div>
+    </div>
+    <div class="scroll-hint"><i class="fas fa-chevron-down"></i><span>D&Eacute;FILER</span></div>
+  </section>
+
+  <section class="intro reveal">
+    <p>C'est avec une joie immense et le c&oelig;ur rempli de gratitude que nous vous invitons &agrave; partager les moments les plus pr&eacute;cieux de notre union. Votre pr&eacute;sence &agrave; nos c&ocirc;t&eacute;s sera la plus belle des b&eacute;n&eacute;dictions.</p>
+  </section>
+
+  <section class="reveal">
+    <h2 class="section-title">Le Grand Jour Approche</h2>
+    <p class="section-subtitle">Compte &agrave; rebours</p>
+    <div class="countdown" id="countdown">
+      <div class="countdown-item"><div class="countdown-num" id="cd-days">--</div><div class="countdown-label">Jours</div></div>
+      <div class="countdown-item"><div class="countdown-num" id="cd-hours">--</div><div class="countdown-label">Heures</div></div>
+      <div class="countdown-item"><div class="countdown-num" id="cd-mins">--</div><div class="countdown-label">Minutes</div></div>
+      <div class="countdown-item"><div class="countdown-num" id="cd-secs">--</div><div class="countdown-label">Secondes</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title reveal">Programme des Festivit&eacute;s</h2>
+    <p class="section-subtitle reveal">Deux jours de c&eacute;l&eacute;bration</p>
+    <div class="timeline">
+      {% for p in programs %}
+      <div class="timeline-item">
+        <div class="timeline-icon"><i class="fas {{ p.icon }}"></i></div>
+        <div class="timeline-content">
+          <h3>{{ p.title }}</h3>
+          <div class="timeline-date">{{ p.date }}</div>
+          <div class="timeline-place"><i class="fas fa-map-marker-alt"></i>{{ p.place }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title reveal">Notre Th&egrave;me</h2>
+    <p class="section-subtitle reveal">Code vestimentaire</p>
+    <div class="theme-card reveal">
+      <div class="theme-label">Le th&egrave;me de notre union</div>
+      <div class="theme-title">{{ theme }}</div>
+      <div class="dress-code">
+        <div class="color-chip blue"></div>
+        <div class="color-chip pink"></div>
+      </div>
+      <div class="dress-code-text">{{ dress_code }}</div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title reveal">Votre Invitation</h2>
+    <p class="section-subtitle reveal">Personnelle & nominative</p>
+    <div class="guest-card reveal">
+      <div class="guest-label">Invit&eacute;(e)</div>
+      <div class="guest-name">{{ guest.name }}</div>
+      <div class="guest-badges">
+        {% if guest.status == 'couple' %}
+        <span class="badge badge-couple"><i class="fas fa-heart"></i> Couple &middot; 2 personnes</span>
+        {% else %}
+        <span class="badge badge-single"><i class="fas fa-user"></i> 1 personne</span>
+        {% endif %}
+        {% if guest.table_name %}
+        <span class="badge badge-table"><i class="fas fa-chair"></i> {{ guest.table_name }}</span>
+        {% endif %}
+      </div>
+      <div class="qr-wrapper"><img src="/api/qr/{{ guest.qr_token }}/" alt="QR"></div>
+      <p class="qr-hint">Pr&eacute;sentez ce code &agrave; l'entr&eacute;e</p>
+      <a class="btn" href="/api/qr/{{ guest.qr_token }}/download/"><i class="fas fa-download"></i> Enregistrer mon QR</a>
+    </div>
+  </section>
+
+  <!-- CONFIRMATION DE PRESENCE -->
+  <section>
+    <h2 class="section-title reveal">Confirmer ma Pr&eacute;sence</h2>
+    <p class="section-subtitle reveal">Merci de nous pr&eacute;venir</p>
+    <div class="card-section reveal" id="confirmSection">
+      {% if confirmation and confirmation.confirmed %}
+      <div style="text-align:center;">
+        <div class="status-badge status-confirmed"><i class="fas fa-check-circle"></i> Pr&eacute;sence confirm&eacute;e ({{ confirmation.num_persons_confirmed }} pers.)</div>
+        <p style="color:var(--text-light);font-size:13px;margin-bottom:20px;">Merci ! Nous avons h&acirc;te de vous voir.</p>
+        <button class="btn btn-secondary" onclick="showConfirmForm()"><i class="fas fa-edit"></i> Modifier ma r&eacute;ponse</button>
+      </div>
+      <div id="confirmForm" style="display:none;">
+      {% else %}
+      <div id="confirmForm">
+      {% endif %}
+        <p class="desc">Serez-vous pr&eacute;sent(e) &agrave; notre c&eacute;l&eacute;bration ?</p>
+        <div class="form-group">
+          <label>Nombre de personnes</label>
+          <div class="confirm-choices">
+            <div class="confirm-choice {% if guest.status == 'single' %}selected{% endif %}"
+                 onclick="selectPersons(1, this)" data-persons="1">
+              <i class="fas fa-user"></i>
+              <strong>1 personne</strong>
+              <small>Je viendrai seul(e)</small>
+            </div>
+            {% if guest.status == 'couple' %}
+            <div class="confirm-choice selected"
+                 onclick="selectPersons(2, this)" data-persons="2">
+              <i class="fas fa-user-friends"></i>
+              <strong>2 personnes</strong>
+              <small>Nous viendrons en couple</small>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Un petit mot pour les mari&eacute;s (optionnel)</label>
+          <textarea id="confirmMessage" placeholder="Votre message...">{% if confirmation %}{{ confirmation.message }}{% endif %}</textarea>
+        </div>
+        <div style="text-align:center;margin-top:20px;">
+          <button class="btn" onclick="submitConfirmation(true)"><i class="fas fa-check"></i> Confirmer ma pr&eacute;sence</button>
+        </div>
+        <div style="text-align:center;margin-top:10px;">
+          <button class="btn btn-secondary" onclick="submitConfirmation(false)" style="font-size:11px;padding:10px 20px;"><i class="fas fa-times"></i> Je ne pourrai pas venir</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMANDER BOISSON -->
+  <section>
+    <h2 class="section-title reveal">Commander une Boisson</h2>
+    <p class="section-subtitle reveal">Pour le jour J</p>
+    <div class="card-section reveal">
+      {% if drinks %}
+        {% if orders %}
+        <div style="margin-bottom:20px;">
+          <h4 style="font-size:14px;color:var(--text-light);margin-bottom:10px;text-transform:uppercase;letter-spacing:2px;">Mes commandes</h4>
+          {% for o in orders %}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px;background:#fafafa;border-radius:8px;margin-bottom:8px;">
+            <span><strong>{{ o.quantity }}x {{ o.drink.name }}</strong></span>
+            <span class="order-status order-status-{{ o.status }}">{{ o.get_status_display }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="drink-selectors" id="drinkSelectors" style="margin-bottom:20px;">
+
+          <div class="form-group" style="margin-bottom:15px;">
+            <label style="font-weight:600;margin-bottom:6px;display:block;font-size:14px;color:#3E3E50;">
+              <i class="fas fa-glass-cheers" style="color:#C9A961;"></i>
+              Boisson 1 (Vous)
+            </label>
+            <select id="drink1Select" class="drink-select" style="width:100%;padding:12px 15px;border-radius:8px;border:1.5px solid #e0e0e0;font-family:inherit;font-size:14px;background:white;">
+              <option value="">-- Choisir une boisson --</option>
+              {% for d in drinks %}
+              <option value="{{ d.id }}">{{ d.name }} ({{ d.get_category_display }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {% if guest.status == 'couple' %}
+          <div class="form-group" id="drink2Group" style="margin-bottom:15px;">
+            <label style="font-weight:600;margin-bottom:6px;display:block;font-size:14px;color:#3E3E50;">
+              <i class="fas fa-user-friends" style="color:#C9A961;"></i>
+              Boisson 2 (Votre conjoint)
+            </label>
+            <select id="drink2Select" class="drink-select" style="width:100%;padding:12px 15px;border-radius:8px;border:1.5px solid #e0e0e0;font-family:inherit;font-size:14px;background:white;">
+              <option value="">-- Choisir une boisson --</option>
+              {% for d in drinks %}
+              <option value="{{ d.id }}">{{ d.name }} ({{ d.get_category_display }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+
+          <p style="font-size:12px;color:#7A7A8C;font-style:italic;margin-top:10px;">
+            {% if guest.status == 'couple' %}
+            Chaque personne de votre couple choisit sa boisson.
+            {% else %}
+            Choisissez la boisson qui vous fera plaisir.
+            {% endif %}
+          </p>
+        </div>
+
+        <div style="text-align:center;margin-top:20px;">
+          <button class="btn" onclick="submitDrinks()" style="cursor:pointer;">
+            <i class="fas fa-check"></i> Valider mes boissons
+          </button>
+        </div>
+      {% else %}
+        <p class="desc">Aucune boisson disponible pour le moment.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- VOEUX -->
+  <section>
+    <h2 class="section-title reveal">Laissez-nous un Mot</h2>
+    <p class="section-subtitle reveal">Vos voeux, nos tr&eacute;sors</p>
+    <div class="card-section reveal">
+      {% if wishes %}
+      <div class="wish-list">
+        {% for w in wishes %}
+        <div class="wish-card">
+          <p>&laquo; {{ w.message }} &raquo;</p>
+          <small>&mdash; {{ w.guest.name }}</small>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="desc" style="color:var(--text-light);">Soyez le premier &agrave; nous laisser un mot.</p>
+      {% endif %}
+      <div class="form-group" style="margin-top:20px;">
+        <label>Votre message</label>
+        <textarea id="wishMessage" placeholder="Vos voeux de bonheur..."></textarea>
+      </div>
+      <div style="text-align:center;">
+        <button class="btn btn-secondary" onclick="submitWish()"><i class="fas fa-heart"></i> Envoyer mon voeu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARTE DU LIEU -->
+  <section>
+    <h2 class="section-title reveal">Lieux & Itin&eacute;raires</h2>
+    <p class="section-subtitle reveal">Trouvez votre chemin</p>
+    <div class="card-section reveal">
+      <h3 style="margin-bottom:15px;"><i class="fas fa-church" style="color:var(--gold);"></i> &Eacute;glise Christ Emmanuel</h3>
+      <div class="map-wrapper">
+        <iframe src="https://www.google.com/maps?q=%C3%89glise+Christ+Emmanuel+Kinshasa&output=embed" loading="lazy"></iframe>
+      </div>
+      <div class="map-buttons" style="margin-bottom:30px;">
+        <a class="map-btn" href="https://www.google.com/maps/search/?api=1&query=%C3%89glise+Christ+Emmanuel+Kinshasa" target="_blank"><i class="fas fa-route"></i> Itin&eacute;raire</a>
+      </div>
+
+      <h3 style="margin-bottom:15px;"><i class="fas fa-champagne-glasses" style="color:var(--gold);"></i> Salle Panafricaine &middot; Cit&eacute; Verte</h3>
+      <div class="map-wrapper">
+        <iframe src="https://www.google.com/maps?q=Salle+Panafricaine+Cite+Verte+Selembao+Kinshasa&output=embed" loading="lazy"></iframe>
+      </div>
+      <div class="map-buttons">
+        <a class="map-btn" href="https://www.google.com/maps/search/?api=1&query=Salle+Panafricaine+Cite+Verte+Selembao+Kinshasa" target="_blank"><i class="fas fa-route"></i> Itin&eacute;raire</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="reveal">
+    <p>Avec tout notre amour</p>
+    <div class="footer-families">{{ families }}</div>
+  </footer>
+</div>
+
+<div id="toast" class="toast-notif"></div>
+
+<script>
+const TOKEN = "{{ guest.qr_token }}";
+const MAX_PERSONS = {% if guest.status == 'couple' %}2{% else %}1{% endif %};
+let selectedPersons = MAX_PERSONS;
+
+// ===== PARTICLES =====
+(function() {
+  const canvas = document.getElementById('particles-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+  resize(); addEventListener('resize', resize);
+  const COLORS = ['#F5C6D6','#E89CB5','#C5DDEC','#7BA8C9','#E5C88A'];
+  const SHAPES = ['heart','petal','dot'];
+  function createP() {
+    return { x: Math.random()*canvas.width, y: -20, size: 4+Math.random()*8,
+      speedY: 0.3+Math.random()*0.7, speedX: -0.3+Math.random()*0.6,
+      rotation: Math.random()*Math.PI*2, rotationSpeed: -0.02+Math.random()*0.04,
+      color: COLORS[Math.floor(Math.random()*COLORS.length)],
+      shape: SHAPES[Math.floor(Math.random()*SHAPES.length)],
+      opacity: 0.4+Math.random()*0.5 };
+  }
+  for (let i=0; i<40; i++) { const p=createP(); p.y=Math.random()*canvas.height; particles.push(p); }
+  function drawHeart(x,y,s,r,c,o) { ctx.save(); ctx.translate(x,y); ctx.rotate(r); ctx.globalAlpha=o; ctx.fillStyle=c;
+    ctx.beginPath(); ctx.moveTo(0,-s*0.5); ctx.bezierCurveTo(-s,-s*1.5,-s*2,s*0.5,0,s*1.5);
+    ctx.bezierCurveTo(s*2,s*0.5,s,-s*1.5,0,-s*0.5); ctx.fill(); ctx.restore(); }
+  function drawPetal(x,y,s,r,c,o) { ctx.save(); ctx.translate(x,y); ctx.rotate(r); ctx.globalAlpha=o;
+    ctx.fillStyle=c; ctx.beginPath(); ctx.ellipse(0,0,s*0.6,s,0,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+  function drawDot(x,y,s,c,o) { ctx.save(); ctx.globalAlpha=o; ctx.fillStyle=c;
+    ctx.beginPath(); ctx.arc(x,y,s*0.4,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+  function animate() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach((p,i) => {
+      p.y+=p.speedY; p.x+=p.speedX; p.rotation+=p.rotationSpeed;
+      if (p.y>canvas.height+30) { particles[i]=createP(); particles[i].y=-30; particles[i].x=Math.random()*canvas.width; }
+      if (p.x<-30) p.x=canvas.width+30;
+      if (p.x>canvas.width+30) p.x=-30;
+      if (p.shape==='heart') drawHeart(p.x,p.y,p.size,p.rotation,p.color,p.opacity);
+      else if (p.shape==='petal') drawPetal(p.x,p.y,p.size,p.rotation,p.color,p.opacity);
+      else drawDot(p.x,p.y,p.size,p.color,p.opacity);
+    });
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+
+// ===== REVEAL =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal, .timeline-item').forEach(el => observer.observe(el));
+
+// ===== COUNTDOWN =====
+const targetDate = new Date('2026-12-19T11:00:00');
+function updateCountdown() {
+  const diff = targetDate - new Date();
+  if (diff <= 0) { document.getElementById('countdown').innerHTML = '<p style="font-family:\'Dancing Script\',cursive;font-size:30px;color:var(--pink-400);">Le grand jour est arriv&eacute; !</p>'; return; }
+  document.getElementById('cd-days').textContent = String(Math.floor(diff/86400000)).padStart(2,'0');
+  document.getElementById('cd-hours').textContent = String(Math.floor(diff%86400000/3600000)).padStart(2,'0');
+  document.getElementById('cd-mins').textContent = String(Math.floor(diff%3600000/60000)).padStart(2,'0');
+  document.getElementById('cd-secs').textContent = String(Math.floor(diff%60000/1000)).padStart(2,'0');
+}
+updateCountdown(); setInterval(updateCountdown, 1000);
+
+// ===== TOAST =====
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast-notif show toast-' + type;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ===== CONFIRMATION =====
+function selectPersons(n, el) {
+  selectedPersons = n;
+  document.querySelectorAll('.confirm-choice').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function showConfirmForm() {
+  document.getElementById('confirmForm').style.display = 'block';
+}
+async function submitConfirmation(confirmed) {
+  const message = document.getElementById('confirmMessage').value.trim();
+  try {
+    const r = await fetch(`/api/invitation/${TOKEN}/confirm/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmed, num_persons: confirmed ? selectedPersons : 0, message }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erreur');
+    showToast(confirmed ? 'Pr&eacute;sence confirm&eacute;e ! Merci.' : 'R&eacute;ponse enregistr&eacute;e.', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error');
+  }
+}
+
+// ===== WISH =====
+async function submitWish() {
+  const msg = document.getElementById('wishMessage').value.trim();
+  if (!msg) { showToast('Ecrivez un message', 'error'); return; }
+  try {
+    const r = await fetch(`/api/invitation/${TOKEN}/wish/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erreur');
+    showToast('Merci pour votre voeu !', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error');
+  }
+}
+
+// ===== DRINKS =====
+function changeQty(btn, delta) {
+  const el = btn.parentElement.querySelector('.qty-value');
+  let n = parseInt(el.textContent) + delta;
+  if (n < 1) n = 1;
+  if (n > 10) n = 10;
+  el.textContent = n;
+}
+
+async function submitDrinks() {
+  const drink1 = document.getElementById('drink1Select').value;
+  const drink2El = document.getElementById('drink2Select');
+  const drink2 = drink2El ? drink2El.value : null;
+
+  if (!drink1) {
+    showToast('Veuillez choisir au moins la boisson 1', 'error');
+    return;
+  }
+  if (drink2El && !drink2) {
+    showToast('Veuillez choisir la boisson 2', 'error');
+    return;
+  }
+
+  try {
+    const r = await fetch(`/api/invitation/${TOKEN}/order-drink/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ drink_id_1: parseInt(drink1), drink_id_2: drink2 ? parseInt(drink2) : null }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Erreur');
+    showToast('Vos boissons ont ete enregistrees !', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error');
+  }
+}
+</script>
+</body>
+</html>

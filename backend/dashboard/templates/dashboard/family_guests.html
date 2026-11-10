@@ -1,0 +1,420 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Demandes familles - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6" x-data="adminFamilyGuestsApp()" x-init="load()">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Demandes des familles</h1>
+    <p class="text-gray-500 text-sm">Approuvez les invites proposes par les familles</p>
+  </div>
+
+  <!-- Boutons d'action admin -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+    <button @click="openAddAdmin()" class="bg-gradient-to-br from-brand-600 to-brand-700 text-white rounded-xl p-5 hover:shadow-lg text-left">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase opacity-80 mb-1">Direct</p>
+          <p class="font-bold text-lg"><i class="fas fa-user-plus mr-2"></i>Ajouter un invite</p>
+          <p class="text-xs opacity-75 mt-1">Sans passer par une demande</p>
+        </div>
+        <i class="fas fa-user-plus text-4xl opacity-30"></i>
+      </div>
+    </button>
+    <button @click="openImportAdmin()" class="bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl p-5 hover:shadow-lg text-left">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase opacity-80 mb-1">Import en masse</p>
+          <p class="font-bold text-lg"><i class="fas fa-file-excel mr-2"></i>Importer Excel</p>
+          <p class="text-xs opacity-75 mt-1">Pour une famille ou en vrac</p>
+        </div>
+        <i class="fas fa-file-import text-4xl opacity-30"></i>
+      </div>
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+      <p class="text-xs text-gray-500 uppercase">Utilisees</p>
+      <p class="text-3xl font-bold text-blue-600" x-text="usage.used || 0"></p>
+      <p class="text-xs text-gray-400">sur <span x-text="usage.limit || 330"></span></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-xs text-gray-500 uppercase">Libres</p>
+      <p class="text-3xl font-bold text-green-600" x-text="usage.remaining || 0"></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500">
+      <p class="text-xs text-gray-500 uppercase">En attente</p>
+      <p class="text-3xl font-bold text-yellow-600" x-text="counts.pending || 0"></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
+      <p class="text-xs text-gray-500 uppercase">Paiement</p>
+      <p class="text-3xl font-bold text-orange-600" x-text="counts.awaiting_payment || 0"></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-xs text-gray-500 uppercase">Approuvees</p>
+      <p class="text-3xl font-bold text-green-600" x-text="counts.approved || 0"></p>
+    </div>
+  </div>
+
+  <!-- Alerte paiement -->
+  <div x-show="counts.awaiting_payment > 0" class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-4 rounded">
+    <div class="flex items-start gap-3">
+      <i class="fas fa-exclamation-triangle text-orange-600 text-2xl"></i>
+      <div class="flex-1">
+        <p class="font-bold text-orange-800"><span x-text="counts.awaiting_payment"></span> demande(s) en attente de paiement</p>
+        <p class="text-sm text-orange-700 mt-1">Ces demandes ne peuvent pas etre approuvees sans acheter des places.</p>
+        <p class="text-sm text-orange-700">Montant : <strong x-text="missingCost"></strong></p>
+        <div class="mt-2 flex gap-2">
+          <button @click="payAndUnlock()" :disabled="paying" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50">
+            <span x-show="!paying"><i class="fas fa-credit-card mr-1"></i>Payer <span x-text="counts.awaiting_payment"></span> places</span>
+            <span x-show="paying"><i class="fas fa-spinner fa-spin"></i></span>
+          </button>
+          <a href="/dashboard/billing/" class="px-4 py-2 bg-white text-orange-700 border border-orange-300 rounded-lg hover:bg-orange-50">Voir facturation</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-2 items-center justify-between">
+    <div class="flex gap-2 flex-wrap">
+      <button @click="filter='pending'" :class="filter==='pending' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'" class="px-4 py-2 rounded-lg text-sm">
+        En attente (<span x-text="counts.pending || 0"></span>)
+      </button>
+      <button @click="filter='awaiting_payment'" :class="filter==='awaiting_payment' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-700'" class="px-4 py-2 rounded-lg text-sm">
+        Paiement (<span x-text="counts.awaiting_payment || 0"></span>)
+      </button>
+      <button @click="filter='approved'" :class="filter==='approved' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700'" class="px-4 py-2 rounded-lg text-sm">
+        Approuvees
+      </button>
+      <button @click="filter='rejected'" :class="filter==='rejected' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'" class="px-4 py-2 rounded-lg text-sm">
+        Refusees
+      </button>
+      <button @click="filter='all'" :class="filter==='all' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-700'" class="px-4 py-2 rounded-lg text-sm">
+        Toutes
+      </button>
+    </div>
+    <button @click="bulkApprove()" :disabled="filter !== 'pending' || counts.pending === 0 || bulkBusy"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm">
+      <i class="fas fa-check-double mr-1"></i>Tout approuver
+    </button>
+  </div>
+
+  <!-- Tableau -->
+  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b">
+          <tr>
+            <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Famille</th>
+            <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Nom</th>
+            <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Telephone</th>
+            <th class="text-center px-3 py-2 text-xs uppercase text-gray-500">Statut</th>
+            <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Table</th>
+            <th class="text-center px-3 py-2 text-xs uppercase text-gray-500">Etat</th>
+            <th class="text-right px-3 py-2 text-xs uppercase text-gray-500">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="r in filteredRequests" :key="r.id">
+            <tr class="border-b hover:bg-gray-50">
+              <td class="px-3 py-2">
+                <span :class="r.family_side === 'groom' ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'"
+                      class="px-2 py-0.5 rounded text-xs font-medium" x-text="r.family_name"></span>
+              </td>
+              <td class="px-3 py-2 font-medium" x-text="r.full_name"></td>
+              <td class="px-3 py-2 text-xs text-gray-600" x-text="r.phone || '-'"></td>
+              <td class="px-3 py-2 text-center text-xs" x-text="r.guest_status_display"></td>
+              <td class="px-3 py-2 text-xs" x-text="r.table_name || '-'"></td>
+              <td class="px-3 py-2 text-center">
+                <span :class="{
+                  'bg-yellow-100 text-yellow-700': r.request_status === 'pending',
+                  'bg-orange-100 text-orange-700': r.request_status === 'awaiting_payment',
+                  'bg-green-100 text-green-700': r.request_status === 'approved',
+                  'bg-red-100 text-red-700': r.request_status === 'rejected',
+                }" class="px-2 py-0.5 rounded text-xs font-medium" x-text="r.request_status_display"></span>
+              </td>
+              <td class="px-3 py-2 text-right">
+                <div class="inline-flex gap-1">
+                  <button x-show="r.request_status === 'pending'" @click="approve(r)" class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200" title="Approuver">
+                    <i class="fas fa-check"></i>
+                  </button>
+                  <button x-show="r.request_status === 'pending' || r.request_status === 'awaiting_payment'" @click="reject(r)" class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200" title="Rejeter">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="filteredRequests.length === 0">
+            <td colspan="7" class="text-center py-8 text-gray-400">
+              <i class="fas fa-inbox text-4xl mb-2"></i>
+              <p>Aucune demande</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Ajouter Admin -->
+  <div x-show="modalAdd.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="modalAdd.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <h3 class="text-xl font-bold mb-4"><i class="fas fa-user-plus text-brand-600 mr-2"></i>Ajouter un invite</h3>
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+            <input type="text" x-model="modalAdd.form.last_name" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Prenom *</label>
+            <input type="text" x-model="modalAdd.form.first_name" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Telephone</label>
+          <input type="text" x-model="modalAdd.form.phone" placeholder="243812345678" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+            <select x-model="modalAdd.form.guest_status" class="w-full px-3 py-2 border rounded-lg">
+              <option value="single">Singleton (1)</option>
+              <option value="couple">Couple (2)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Table</label>
+            <input type="text" x-model="modalAdd.form.table_name" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Cote famille</label>
+          <select x-model="modalAdd.form.family" class="w-full px-3 py-2 border rounded-lg">
+            <option value="">Non assigne</option>
+            <option value="groom">Famille du marie</option>
+            <option value="bride">Famille de la mariee</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button @click="modalAdd.show = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+        <button @click="saveAdminGuest()" :disabled="modalAdd.saving" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+          <span x-show="!modalAdd.saving">Ajouter</span>
+          <span x-show="modalAdd.saving"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Import Admin -->
+  <div x-show="modalImport.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="modalImport.show = false" class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
+      <h3 class="text-xl font-bold mb-2"><i class="fas fa-file-excel text-purple-600 mr-2"></i>Importer un Excel</h3>
+      <p class="text-sm text-gray-500 mb-4">Format : Nom | Prenom | Telephone | Statut | Table</p>
+
+      <div class="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 text-xs text-blue-800">
+        <p><i class="fas fa-info-circle"></i> Telechargez le modele :</p>
+        <a href="/dashboard/api/admin/download-template/" class="inline-block mt-2 px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700">
+          <i class="fas fa-download mr-1"></i>Modele Excel
+        </a>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Cote famille</label>
+        <select x-model="modalImport.family" class="w-full px-3 py-2 border rounded-lg">
+          <option value="">Sans famille (import direct)</option>
+          <option value="groom">Famille du marie</option>
+          <option value="bride">Famille de la mariee</option>
+        </select>
+      </div>
+
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
+        <input type="file" x-ref="adminFileInput" @change="onAdminFileChange" accept=".xlsx,.xls" class="hidden">
+        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+        <p class="text-sm text-gray-600 mb-2" x-text="modalImport.file ? modalImport.file.name : 'Selectionnez un fichier .xlsx'"></p>
+        <button @click="$refs.adminFileInput.click()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+          <i class="fas fa-folder-open mr-1"></i>Choisir
+        </button>
+      </div>
+
+      <div x-show="modalImport.result" class="mb-4 bg-green-50 border-l-4 border-green-500 p-3 text-sm">
+        <p class="font-semibold text-green-800 mb-1">Import termine</p>
+        <p><strong x-text="modalImport.result?.success || 0"></strong> invite(s) ajoute(s)</p>
+        <p x-show="modalImport.result?.awaiting_payment > 0" class="text-orange-600">
+          <strong x-text="modalImport.result?.awaiting_payment"></strong> en attente de paiement
+        </p>
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button @click="modalImport.show = false; modalImport.result = null" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Fermer</button>
+        <button @click="importExcelAdmin()" :disabled="modalImport.uploading || !modalImport.file" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
+          <span x-show="!modalImport.uploading"><i class="fas fa-upload mr-1"></i>Importer</span>
+          <span x-show="modalImport.uploading"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function adminFamilyGuestsApp() {
+  return {
+    requests: [],
+    counts: {},
+    usage: {},
+    filter: 'pending',
+    bulkBusy: false,
+    paying: false,
+    modalAdd: { show: false, saving: false, form: {} },
+    modalImport: { show: false, file: null, uploading: false, result: null, family: '' },
+
+    get filteredRequests() {
+      if (this.filter === 'all') return this.requests;
+      return this.requests.filter(r => r.request_status === this.filter);
+    },
+    get missingCost() {
+      const n = this.counts.awaiting_payment || 0;
+      const usd = (n * parseFloat(this.usage.price_usd || 0.35)).toFixed(2);
+      const cdf = (n * (this.usage.price_cdf || 1200)).toLocaleString('fr-FR');
+      return usd + ' USD (' + cdf + ' CDF)';
+    },
+
+    async load() {
+      try {
+        const r = await fetch('/dashboard/api/family-requests/?status=all');
+        const data = await r.json();
+        this.requests = data.requests;
+        this.counts = data.counts;
+        this.usage = data.usage;
+      } catch(e) {
+        console.error('Load error:', e);
+      }
+    },
+
+    openAddAdmin() {
+      this.modalAdd.form = { last_name: '', first_name: '', phone: '', guest_status: 'single', table_name: '', family: '' };
+      this.modalAdd.show = true;
+    },
+
+    async saveAdminGuest() {
+      if (!this.modalAdd.form.last_name.trim() || !this.modalAdd.form.first_name.trim()) {
+        alert('Nom et prenom requis');
+        return;
+      }
+      this.modalAdd.saving = true;
+      try {
+        const r = await fetch('/dashboard/api/admin/add-guest/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify(this.modalAdd.form),
+        });
+        const data = await r.json();
+        if (r.status === 402) {
+          alert('Limite atteinte. Allez sur /dashboard/billing/ pour acheter des places.');
+          return;
+        }
+        if (!r.ok) throw new Error(data.error || 'Erreur');
+        this.modalAdd.show = false;
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Invite ajoute', type: 'success' } }));
+      } catch(e) { alert(e.message); }
+      finally { this.modalAdd.saving = false; }
+    },
+
+    openImportAdmin() {
+      this.modalImport = { show: true, file: null, uploading: false, result: null, family: '' };
+    },
+
+    onAdminFileChange(e) {
+      this.modalImport.file = e.target.files[0] || null;
+    },
+
+    async importExcelAdmin() {
+      if (!this.modalImport.file) return;
+      this.modalImport.uploading = true;
+      try {
+        const fd = new FormData();
+        fd.append('file', this.modalImport.file);
+        fd.append('family', this.modalImport.family || '');
+        const r = await fetch('/dashboard/api/admin/import-excel/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': this.csrf() },
+          body: fd,
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Erreur import');
+        this.modalImport.result = data;
+        await this.load();
+      } catch(e) { alert(e.message); }
+      finally { this.modalImport.uploading = false; }
+    },
+
+    async approve(r) {
+      const r2 = await fetch('/dashboard/api/family-requests/' + r.id + '/approve/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({}),
+      });
+      const data = await r2.json();
+      if (!r2.ok) { alert(data.error); return; }
+      await this.load();
+      window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Approuve', type: 'success' } }));
+    },
+
+    async reject(r) {
+      const note = prompt('Raison du refus :') || '';
+      await fetch('/dashboard/api/family-requests/' + r.id + '/reject/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ admin_note: note }),
+      });
+      await this.load();
+    },
+
+    async bulkApprove() {
+      if (!confirm('Approuver toutes les demandes en attente ?')) return;
+      this.bulkBusy = true;
+      try {
+        const r = await fetch('/dashboard/api/family-requests/bulk-approve/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify({}),
+        });
+        const data = await r.json();
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: data.approved_count + ' demande(s) approuvee(s)', type: 'success' } }));
+      } catch(e) { alert(e.message); }
+      finally { this.bulkBusy = false; }
+    },
+
+    async payAndUnlock() {
+      const n = this.counts.awaiting_payment || 0;
+      if (n === 0) return;
+      if (!confirm('Acheter ' + n + ' place(s) pour ' + this.missingCost + ' ?')) return;
+      this.paying = true;
+      try {
+        const r = await fetch('/dashboard/api/billing/purchase/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify({ places: n }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: n + ' place(s) achetee(s)', type: 'success' } }));
+      } catch(e) { alert(e.message); }
+      finally { this.paying = false; }
+    },
+
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

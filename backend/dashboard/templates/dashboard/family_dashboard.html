@@ -1,0 +1,382 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Espace Famille - {{ family_name }}{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6" x-data="familyApp()" x-init="init()">
+
+  <!-- En-tete -->
+  <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800" x-text="data.family.display_name || '{{ family_name }}'"></h1>
+      <p class="text-sm" :class="data.family.side === 'groom' ? 'text-indigo-600' : 'text-pink-600'"
+         x-text="data.family.side_label || '{{ family_side }}'"></p>
+    </div>
+    <div class="flex gap-2">
+      <a href="/famille/guests/" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm">
+        <i class="fas fa-users mr-1"></i>Mes invites
+      </a>
+      <a href="/auth/logout/" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm">
+        <i class="fas fa-sign-out-alt mr-1"></i>Deconnexion
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+      <p class="text-xs text-gray-500 uppercase">Mes tables</p>
+      <p class="text-3xl font-bold text-blue-600" x-text="data.stats.tables_count || 0"></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-xs text-gray-500 uppercase">Mes invites</p>
+      <p class="text-3xl font-bold text-green-600" x-text="data.stats.guests_count || 0"></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
+      <p class="text-xs text-gray-500 uppercase">Personnes</p>
+      <p class="text-3xl font-bold text-purple-600" x-text="data.stats.total_persons || 0"></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500">
+      <p class="text-xs text-gray-500 uppercase">En attente</p>
+      <p class="text-3xl font-bold text-yellow-600" x-text="data.stats.pending_proposals || 0"></p>
+    </div>
+  </div>
+
+  <!-- ACTIONS RAPIDES : 3 gros boutons -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+    <button @click="openCreateTable()" class="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-xl p-5 hover:shadow-lg transition text-left">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase opacity-80 mb-1">Proposition</p>
+          <p class="font-bold text-lg"><i class="fas fa-plus mr-2"></i>Proposer une table</p>
+          <p class="text-xs opacity-75 mt-1">Creer une nouvelle table pour votre famille</p>
+        </div>
+        <i class="fas fa-chair text-4xl opacity-30"></i>
+      </div>
+    </button>
+
+    <button @click="openAssignGuestFromAnywhere()" class="bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-xl p-5 hover:shadow-lg transition text-left">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase opacity-80 mb-1">Proposition</p>
+          <p class="font-bold text-lg"><i class="fas fa-user-tag mr-2"></i>Assigner un invite</p>
+          <p class="text-xs opacity-75 mt-1">Placer un invite a une table</p>
+        </div>
+        <i class="fas fa-users-cog text-4xl opacity-30"></i>
+      </div>
+    </button>
+
+    <button @click="switchTab('proposals')" class="bg-gradient-to-br from-yellow-500 to-orange-600 text-white rounded-xl p-5 hover:shadow-lg transition text-left">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase opacity-80 mb-1">Suivi</p>
+          <p class="font-bold text-lg"><i class="fas fa-clipboard-list mr-2"></i>Mes propositions</p>
+          <p class="text-xs opacity-75 mt-1"><span x-text="data.stats.pending_proposals || 0"></span> en attente de validation</p>
+        </div>
+        <i class="fas fa-clock text-4xl opacity-30"></i>
+      </div>
+    </button>
+  </div>
+
+  <!-- Onglets -->
+  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="flex border-b border-gray-200 overflow-x-auto">
+      <button @click="tab='tables'" :class="tab==='tables' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+              class="flex-1 py-3 px-4 text-sm font-medium whitespace-nowrap">
+        <i class="fas fa-chair mr-1"></i> Mes tables (<span x-text="data.tables.length"></span>)
+      </button>
+      <button @click="tab='guests'" :class="tab==='guests' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+              class="flex-1 py-3 px-4 text-sm font-medium whitespace-nowrap">
+        <i class="fas fa-user-friends mr-1"></i> Mes invites (<span x-text="data.guests.length"></span>)
+      </button>
+      <button @click="tab='proposals'" :class="tab==='proposals' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+              class="flex-1 py-3 px-4 text-sm font-medium whitespace-nowrap">
+        <i class="fas fa-clipboard-list mr-1"></i> Mes propositions (<span x-text="data.proposals.length"></span>)
+      </button>
+    </div>
+
+    <!-- TABLES -->
+    <div x-show="tab==='tables'" class="p-4">
+      <div class="mb-3 text-right">
+        <button @click="openCreateTable()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+          <i class="fas fa-plus mr-1"></i>Proposer une table
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <template x-for="t in data.tables" :key="t.id">
+          <div class="bg-gray-50 rounded-lg p-4 border-l-4" :class="data.family.side === 'groom' ? 'border-indigo-400' : 'border-pink-400'">
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="font-bold" x-text="t.name"></h4>
+              <span :class="t.is_full ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'" class="px-2 py-0.5 rounded text-xs" x-text="t.is_full ? 'Pleine' : t.available_seats+' libres'"></span>
+            </div>
+            <div class="h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
+              <div class="h-full" :class="t.guests_count/t.capacity >= 1 ? 'bg-red-500' : 'bg-green-500'"
+                   :style="`width:${Math.min(100, t.guests_count/t.capacity*100)}%`"></div>
+            </div>
+            <p class="text-xs text-gray-600 mb-2"><span x-text="t.guests_count"></span>/<span x-text="t.capacity"></span> places</p>
+            <p class="text-xs text-gray-500 mb-2" x-text="t.notes || ''"></p>
+            <div class="flex gap-1">
+              <button @click="openUpdateTable(t)" class="flex-1 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                <i class="fas fa-edit"></i> Modifier
+              </button>
+              <button @click="proposeDeleteTable(t)" class="flex-1 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">
+                <i class="fas fa-trash"></i> Supprimer
+              </button>
+            </div>
+          </div>
+        </template>
+        <div x-show="data.tables.length === 0" class="col-span-full text-center text-gray-400 py-8">
+          <i class="fas fa-chair text-4xl mb-2"></i>
+          <p>Aucune table assignee a votre famille</p>
+          <p class="text-xs mt-2">Cliquez sur "Proposer une table" pour en creer une</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- GUESTS -->
+    <div x-show="tab==='guests'" class="p-4">
+      <div class="mb-3 flex justify-between items-center">
+        <p class="text-sm text-gray-600">Vos invites assignes a votre famille</p>
+        <a href="/famille/guests/" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm">
+          <i class="fas fa-plus mr-1"></i>Ajouter des invites
+        </a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Nom</th>
+              <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Statut</th>
+              <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Table</th>
+              <th class="text-right px-3 py-2 text-xs uppercase text-gray-500">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="g in data.guests" :key="g.id">
+              <tr class="border-b hover:bg-gray-50">
+                <td class="px-3 py-2 font-medium" x-text="g.name"></td>
+                <td class="px-3 py-2 text-xs" x-text="g.status_display"></td>
+                <td class="px-3 py-2 text-xs" x-text="g.table_name || '-']"></td>
+                <td class="px-3 py-2 text-right">
+                  <button @click="openAssignGuest(g)" class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">
+                    <i class="fas fa-exchange-alt"></i> Changer table
+                  </button>
+                  <button x-show="g.table_name" @click="proposeUnassignGuest(g)" class="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded hover:bg-orange-200">
+                    <i class="fas fa-unlink"></i>
+                  </button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="data.guests.length === 0">
+              <td colspan="4" class="text-center py-8 text-gray-400">
+                <i class="fas fa-users text-4xl mb-2"></i>
+                <p>Aucun invite dans votre famille</p>
+                <a href="/famille/guests/" class="inline-block mt-3 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm">
+                  Ajouter des invites
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROPOSALS -->
+    <div x-show="tab==='proposals'" class="p-4">
+      <div class="mb-3 flex justify-between items-center flex-wrap gap-2">
+        <div class="flex gap-2">
+          <button @click="openCreateTable()" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+            <i class="fas fa-plus mr-1"></i>Table
+          </button>
+        </div>
+        <p class="text-sm text-gray-500"><span x-text="data.proposals.length"></span> proposition(s)</p>
+      </div>
+      <div class="space-y-2">
+        <template x-for="p in data.proposals" :key="p.id">
+          <div class="bg-gray-50 rounded-lg p-3 border-l-4"
+               :class="p.status === 'pending' ? 'border-yellow-400' : (p.status === 'approved' ? 'border-green-400' : 'border-red-400')">
+            <div class="flex justify-between items-start">
+              <div>
+                <strong class="text-sm" x-text="p.action_label"></strong>
+                <span x-show="p.target_table_name" class="text-xs text-gray-500"> - Table <span x-text="p.target_table_name"></span></span>
+                <span x-show="p.target_guest_name" class="text-xs text-gray-500"> - Invite <span x-text="p.target_guest_name"></span></span>
+                <p class="text-xs text-gray-400 mt-1" x-text="p.created_at ? new Date(p.created_at).toLocaleString('fr-FR') : ''"></p>
+              </div>
+              <span :class="{'bg-yellow-100 text-yellow-700': p.status==='pending', 'bg-green-100 text-green-700': p.status==='approved', 'bg-red-100 text-red-700': p.status==='rejected'}"
+                    class="px-2 py-0.5 rounded text-xs font-medium" x-text="p.status_label"></span>
+            </div>
+            <p x-show="p.reason" class="text-xs text-gray-500 mt-1"><i class="fas fa-quote-left"></i> <span x-text="p.reason"></span></p>
+            <p x-show="p.admin_note" class="text-xs text-gray-600 mt-1 bg-blue-50 px-2 py-1 rounded"><i class="fas fa-comment-dots"></i> Admin : <span x-text="p.admin_note"></span></p>
+          </div>
+        </template>
+        <div x-show="data.proposals.length === 0" class="text-center text-gray-400 py-8">
+          <i class="fas fa-clipboard-list text-4xl mb-2"></i>
+          <p>Aucune proposition pour le moment</p>
+          <p class="text-xs mt-2">Utilisez les boutons ci-dessus pour proposer des modifications</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL generique -->
+  <div x-show="modal.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="modal.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <h3 class="text-xl font-bold mb-4" x-text="modal.title"></h3>
+
+      <!-- Create table -->
+      <div x-show="modal.type === 'create_table'" class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Nom de la table *</label>
+          <input type="text" x-model="modal.payload.name" class="w-full px-3 py-2 border rounded-lg" placeholder="ex: Table 8">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Capacite</label>
+          <input type="number" x-model.number="modal.payload.capacity" class="w-full px-3 py-2 border rounded-lg" min="1" max="30">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Notes</label>
+          <input type="text" x-model="modal.payload.notes" class="w-full px-3 py-2 border rounded-lg" placeholder="Optionnel">
+        </div>
+      </div>
+
+      <!-- Update table -->
+      <div x-show="modal.type === 'update_table'" class="space-y-3">
+        <p class="text-sm text-gray-600">Table : <strong x-text="modal.targetName"></strong></p>
+        <div>
+          <label class="block text-sm font-medium mb-1">Nouvelle capacite</label>
+          <input type="number" x-model.number="modal.payload.capacity" class="w-full px-3 py-2 border rounded-lg" min="1" max="30">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Nouvelles notes</label>
+          <input type="text" x-model="modal.payload.notes" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+      </div>
+
+      <!-- Assign guest -->
+      <div x-show="modal.type === 'assign_guest'" class="space-y-3">
+        <p class="text-sm text-gray-600">Invite : <strong x-text="modal.targetName"></strong></p>
+        <div>
+          <label class="block text-sm font-medium mb-1">Assigner a la table</label>
+          <select x-model="modal.payload.table_name" class="w-full px-3 py-2 border rounded-lg">
+            <option value="">-- Choisir --</option>
+            <template x-for="t in data.tables" :key="t.id">
+              <option :value="t.name" x-text="t.name + ' (' + t.available_seats + ' libres)'"></option>
+            </template>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="block text-sm font-medium mb-1">Raison (optionnel)</label>
+        <input type="text" x-model="modal.reason" class="w-full px-3 py-2 border rounded-lg" placeholder="ex: cousin proche">
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6">
+        <button @click="modal.show = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+        <button @click="submitProposal()" :disabled="modal.saving" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+          <span x-show="!modal.saving">Envoyer la proposition</span>
+          <span x-show="modal.saving"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function familyApp() {
+  return {
+    tab: 'tables',
+    data: { family: {}, tables: [], guests: [], proposals: [], stats: {} },
+    modal: { show: false, type: '', title: '', saving: false, payload: {}, targetId: null, targetName: '', reason: '' },
+
+    async init() {
+      await this.load();
+    },
+    async load() {
+      try {
+        const r = await fetch('/famille/api/data/');
+        const d = await r.json();
+        this.data = d;
+      } catch(e) {
+        console.error('Load failed:', e);
+      }
+    },
+
+    switchTab(t) {
+      this.tab = t;
+    },
+
+    openCreateTable() {
+      this.modal = { show: true, type: 'create_table', title: 'Proposer une nouvelle table',
+        saving: false, payload: { name: '', capacity: 8, notes: '' }, targetId: null, targetName: '', reason: '' };
+    },
+    openUpdateTable(t) {
+      this.modal = { show: true, type: 'update_table', title: 'Proposer une modification',
+        saving: false, payload: { capacity: t.capacity, notes: t.notes }, targetId: t.id, targetName: t.name, reason: '' };
+    },
+    async proposeDeleteTable(t) {
+      const reason = prompt(`Raison de la suppression de "${t.name}" ?`);
+      if (reason === null) return;
+      await this.sendProposal('delete_table', { target_table_id: t.id }, {}, reason);
+    },
+    openAssignGuest(g) {
+      this.modal = { show: true, type: 'assign_guest', title: 'Changer la table de l\'invite',
+        saving: false, payload: { table_name: g.table_name || '' }, targetId: g.id, targetName: g.name, reason: '' };
+    },
+    openAssignGuestFromAnywhere() {
+      if (this.data.guests.length === 0) {
+        alert('Ajoutez d\'abord des invites via "Mes invites"');
+        return;
+      }
+      this.switchTab('guests');
+    },
+    async proposeUnassignGuest(g) {
+      if (!confirm(`Retirer ${g.name} de ${g.table_name} ?`)) return;
+      await this.sendProposal('unassign_guest', { target_guest_id: g.id }, {}, '');
+    },
+
+    async submitProposal() {
+      const p = this.modal;
+      if (p.type === 'create_table' && !p.payload.name.trim()) { alert('Nom requis'); return; }
+      if (p.type === 'assign_guest' && !p.payload.table_name) { alert('Choisir une table'); return; }
+
+      const body = { action: p.type, payload: p.payload, reason: p.reason };
+      if (p.type === 'update_table') body.target_table_id = p.targetId;
+      if (p.type === 'assign_guest') body.target_guest_id = p.targetId;
+
+      p.saving = true;
+      try {
+        const r = await fetch('/famille/api/propose/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Erreur');
+        p.show = false;
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Proposition envoyee !', type: 'success' } }));
+      } catch (e) {
+        alert(e.message);
+      } finally { p.saving = false; }
+    },
+
+    async sendProposal(action, target, payload, reason) {
+      const r = await fetch('/famille/api/propose/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ action, ...target, payload, reason }),
+      });
+      const data = await r.json();
+      if (!r.ok) { alert(data.error); return; }
+      await this.load();
+      window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Proposition envoyee', type: 'success' } }));
+    },
+
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

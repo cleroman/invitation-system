@@ -1,0 +1,269 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Facturation - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6" x-data="billingApp()" x-init="load()">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Facturation & Places</h1>
+    <p class="text-gray-500 text-sm">Gerez votre quota d'invites et achetez des places supplementaires</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide mb-1">Places gratuites</p>
+      <p class="text-3xl font-bold text-blue-600" x-text="config.base_limit">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide mb-1">Places achetees</p>
+      <p class="text-3xl font-bold text-green-600" x-text="config.extra_places_purchased">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-purple-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide mb-1">Limite totale</p>
+      <p class="text-3xl font-bold text-purple-600" x-text="config.total_limit">-</p>
+    </div>
+  </div>
+
+  <!-- Barre de progression -->
+  <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <h3 class="font-bold text-gray-800">Utilisation actuelle</h3>
+        <p class="text-sm text-gray-500">
+          <span x-text="config.current_guests" class="font-bold text-gray-800"></span> / 
+          <span x-text="config.total_limit"></span> invites
+        </p>
+      </div>
+      <div class="text-right">
+        <p class="text-xs text-gray-500 uppercase">Restant</p>
+        <p class="text-2xl font-bold" :class="config.remaining_slots <= 10 ? 'text-red-600' : 'text-green-600'" x-text="config.remaining_slots"></p>
+      </div>
+    </div>
+    <div class="h-4 bg-gray-100 rounded-full overflow-hidden">
+      <div class="h-full transition-all" 
+           :class="percent >= 100 ? 'bg-red-500' : (percent >= 80 ? 'bg-orange-500' : 'bg-green-500')"
+           :style="`width: ${Math.min(100, percent)}%`"></div>
+    </div>
+    <div class="mt-2 flex justify-between text-xs text-gray-400">
+      <span>0</span>
+      <span x-text="`${percent.toFixed(0)}%`"></span>
+      <span x-text="config.total_limit"></span>
+    </div>
+  </div>
+
+  <!-- Achat de places -->
+  <div class="bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl shadow-lg p-6 mb-6 text-white">
+    <h3 class="text-xl font-bold mb-2"><i class="fas fa-shopping-cart mr-2"></i>Acheter des places</h3>
+    <p class="text-sm opacity-90 mb-4">
+      Prix : <strong x-text="config.price_usd"></strong> USD par place (<span x-text="config.price_cdf"></span> CDF)
+    </p>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+      <template x-for="pack in [1, 5, 10, 25, 50]" :key="pack">
+        <button @click="purchase(pack)" :disabled="buying"
+                class="bg-white/20 hover:bg-white/30 backdrop-blur rounded-lg p-3 text-center transition disabled:opacity-50">
+          <p class="text-2xl font-bold" x-text="pack"></p>
+          <p class="text-xs" x-text="pack === 1 ? 'place' : 'places'"></p>
+          <p class="text-xs opacity-75 mt-1" x-text="`${(pack * config.price_usd).toFixed(2)} USD`"></p>
+        </button>
+      </template>
+    </div>
+    <div class="mt-4 flex gap-2">
+      <input type="number" x-model.number="customPlaces" min="1" max="500" placeholder="Nombre personnalise"
+             class="flex-1 px-4 py-2 rounded-lg text-gray-800 text-sm">
+      <button @click="purchase(customPlaces)" :disabled="buying || customPlaces < 1"
+              class="px-6 py-2 bg-white text-brand-600 rounded-lg font-semibold hover:bg-gray-100 disabled:opacity-50">
+        Acheter
+      </button>
+    </div>
+    <p class="text-xs opacity-75 mt-3">
+      <i class="fas fa-info-circle mr-1"></i>
+      Paiement simule en mode test. L'integration Mobile Money sera ajoutee prochainement.
+    </p>
+  </div>
+
+  <!-- Historique transactions -->
+  <div class="bg-white rounded-xl shadow-sm p-6">
+    <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-history mr-2"></i>Historique des achats</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Date</th>
+            <th class="text-left px-3 py-2 text-xs uppercase text-gray-500">Reference</th>
+            <th class="text-center px-3 py-2 text-xs uppercase text-gray-500">Places</th>
+            <th class="text-right px-3 py-2 text-xs uppercase text-gray-500">Montant</th>
+            <th class="text-center px-3 py-2 text-xs uppercase text-gray-500">Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="t in transactions" :key="t.id">
+            <tr class="border-b">
+              <td class="px-3 py-2 text-xs text-gray-500" x-text="new Date(t.created_at).toLocaleString('fr-FR')"></td>
+              <td class="px-3 py-2 font-mono text-xs" x-text="t.reference"></td>
+              <td class="px-3 py-2 text-center font-bold" x-text="`+${t.places_purchased}`"></td>
+              <td class="px-3 py-2 text-right">
+                <span class="font-bold" x-text="`${t.amount_usd} USD`"></span><br>
+                <span class="text-xs text-gray-500" x-text="`(${t.amount_cdf} CDF)`"></span>
+              </td>
+              <td class="px-3 py-2 text-center">
+                <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700" x-text="t.status_label"></span>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="transactions.length === 0">
+            <td colspan="5" class="text-center py-8 text-gray-400">Aucune transaction</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+    <!-- QUOTAS PAR FAMILLE -->
+  <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+    <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-users-cog mr-2"></i>Quotas par famille</h3>
+    <p class="text-sm text-gray-500 mb-4">Definissez le nombre de places pour chaque cote</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <!-- Cote marie -->
+      <div class="bg-indigo-50 rounded-lg p-4 border-l-4 border-indigo-500">
+        <h4 class="font-bold text-indigo-800 mb-2"><i class="fas fa-mars mr-2"></i>Famille du marie</h4>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span>Quota de base :</span><strong x-text="config.groom_quota"></strong></div>
+          <div class="flex justify-between"><span>Places achetees :</span><strong x-text="config.groom_extra || 0"></strong></div>
+          <div class="flex justify-between text-indigo-800 font-bold border-t border-indigo-200 pt-2"><span>Total :</span><span x-text="config.groom_total"></span></div>
+          <div class="flex justify-between"><span>Utilisees :</span><strong x-text="config.groom_used || 0"></strong></div>
+          <div class="flex justify-between" :class="(config.groom_remaining || 0) <= 10 ? 'text-red-600' : 'text-green-600'">
+            <span>Restantes :</span><strong x-text="config.groom_remaining || 0"></strong>
+          </div>
+        </div>
+        <button @click="buyForSide('groom', 10)" class="w-full mt-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">
+          <i class="fas fa-shopping-cart mr-1"></i>Acheter 10 places
+        </button>
+      </div>
+
+      <!-- Cote mariee -->
+      <div class="bg-pink-50 rounded-lg p-4 border-l-4 border-pink-500">
+        <h4 class="font-bold text-pink-800 mb-2"><i class="fas fa-venus mr-2"></i>Famille de la mariee</h4>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span>Quota de base :</span><strong x-text="config.bride_quota"></strong></div>
+          <div class="flex justify-between"><span>Places achetees :</span><strong x-text="config.bride_extra || 0"></strong></div>
+          <div class="flex justify-between text-pink-800 font-bold border-t border-pink-200 pt-2"><span>Total :</span><span x-text="config.bride_total"></span></div>
+          <div class="flex justify-between"><span>Utilisees :</span><strong x-text="config.bride_used || 0"></strong></div>
+          <div class="flex justify-between" :class="(config.bride_remaining || 0) <= 10 ? 'text-red-600' : 'text-green-600'">
+            <span>Restantes :</span><strong x-text="config.bride_remaining || 0"></strong>
+          </div>
+        </div>
+        <button @click="buyForSide('bride', 10)" class="w-full mt-3 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 text-sm">
+          <i class="fas fa-shopping-cart mr-1"></i>Acheter 10 places
+        </button>
+      </div>
+    </div>
+
+    <!-- Configuration des quotas -->
+    <div class="bg-gray-50 rounded-lg p-4 mt-4">
+      <h4 class="font-semibold text-gray-700 mb-3 text-sm">Modifier les quotas de base</h4>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Quota marie</label>
+          <input type="number" x-model.number="config.groom_quota" min="1" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Quota mariee</label>
+          <input type="number" x-model.number="config.bride_quota" min="1" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+      </div>
+      <div class="flex justify-between items-center">
+        <p class="text-xs text-gray-500">Total : <strong x-text="(config.groom_quota || 0) + (config.bride_quota || 0)"></strong> places</p>
+        <button @click="saveQuotas()" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 text-sm">
+          <i class="fas fa-save mr-1"></i>Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="mt-6 bg-white rounded-xl shadow-sm p-6">
+    <h3 class="font-bold text-gray-800 mb-4"><i class="fas fa-cog mr-2"></i>Configuration (admin)</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Limite gratuite</label>
+        <input type="number" x-model.number="config.base_limit" min="1" class="w-full px-3 py-2 border rounded-lg">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Prix par place (USD)</label>
+        <input type="number" step="0.01" x-model.number="config.price_usd" class="w-full px-3 py-2 border rounded-lg">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Prix par place (CDF)</label>
+        <input type="number" x-model.number="config.price_cdf" class="w-full px-3 py-2 border rounded-lg">
+      </div>
+    </div>
+    <div class="mt-4 flex justify-end">
+      <button @click="saveConfig()" class="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700">
+        <i class="fas fa-save mr-1"></i>Enregistrer la configuration
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function billingApp() {
+  return {
+    config: {},
+    transactions: [],
+    customPlaces: 5,
+    buying: false,
+    get percent() {
+      if (!this.config.total_limit) return 0;
+      return (this.config.current_guests / this.config.total_limit) * 100;
+    },
+    async load() {
+      const r = await fetch('/dashboard/api/billing/status/');
+      const data = await r.json();
+      this.config = data.config;
+      this.transactions = data.transactions;
+    },
+    async purchase(places) {
+      if (places < 1) { alert('Nombre invalide'); return; }
+      const usd = (places * this.config.price_usd).toFixed(2);
+      const cdf = (places * this.config.price_cdf).toLocaleString('fr-FR');
+      if (!confirm(`Acheter ${places} place(s) pour ${usd} USD (${cdf} CDF) ?`)) return;
+      this.buying = true;
+      try {
+        const r = await fetch('/dashboard/api/billing/purchase/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify({ places }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Erreur');
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: `${places} place(s) achetee(s) !`, type: 'success' } }));
+      } catch (e) {
+        alert(e.message);
+      } finally { this.buying = false; }
+    },
+    async saveConfig() {
+      const r = await fetch('/dashboard/api/billing/config/update/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({
+          base_limit: this.config.base_limit,
+          price_per_place_usd: this.config.price_usd,
+          price_per_place_cdf: this.config.price_cdf,
+        }),
+      });
+      if (r.ok) {
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Configuration enregistree', type: 'success' } }));
+      }
+    },
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

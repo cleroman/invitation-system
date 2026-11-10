@@ -1,0 +1,192 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Familles - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6" x-data="familiesApp()" x-init="load()">
+
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Comptes familles</h1>
+      <p class="text-gray-500 text-sm">Comptes cote marie et cote mariee pour proposer des modifications</p>
+    </div>
+    <button @click="openAdd()" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-2">
+      <i class="fas fa-plus"></i> Nouvelle famille
+    </button>
+  </div>
+
+  <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+    <div class="flex items-start gap-3 text-sm text-blue-800">
+      <i class="fas fa-info-circle mt-0.5"></i>
+      <div>
+        <p><strong>Fonctionnement :</strong></p>
+        <ul class="list-disc list-inside mt-1 space-y-1">
+          <li>Chaque famille a son login/mot de passe</li>
+          <li>Elle se connecte sur <code class="bg-white px-1 rounded">/famille/login/</code></li>
+          <li>Elle peut proposer : creer/modifier/supprimer table, assigner invite</li>
+          <li>Les propositions sont validees par vous dans <a href="/dashboard/proposals/" class="underline font-medium">/dashboard/proposals/</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <template x-for="f in families" :key="f.id">
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4"
+           :class="f.side === 'groom' ? 'border-indigo-400' : 'border-pink-400'">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <h3 class="font-bold text-gray-800" x-text="f.display_name"></h3>
+            <p class="text-xs" :class="f.side === 'groom' ? 'text-indigo-600' : 'text-pink-600'" x-text="f.side_label"></p>
+          </div>
+          <span :class="f.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                class="px-2 py-1 rounded-full text-xs font-medium"
+                x-text="f.is_active ? 'Actif' : 'Revoque'"></span>
+        </div>
+        <div class="text-xs text-gray-500 font-mono mb-2">@<span x-text="f.username"></span></div>
+        <div class="text-xs mb-3">
+          <span x-show="f.is_logged_in" class="text-green-600"><i class="fas fa-circle text-[6px]"></i> En ligne</span>
+          <span x-show="!f.is_logged_in" class="text-gray-400"><i class="far fa-circle text-[6px]"></i> Hors ligne</span>
+        </div>
+        <div class="flex gap-1 pt-2 border-t">
+          <button @click="openEdit(f)" class="flex-1 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+            <i class="fas fa-edit"></i> Editer
+          </button>
+          <button @click="revoke(f)" :disabled="!f.is_logged_in"
+                  :class="f.is_logged_in ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : 'bg-gray-100 text-gray-400'"
+                  class="flex-1 py-1.5 text-xs rounded">
+            <i class="fas fa-sign-out-alt"></i> Revoquer
+          </button>
+          <button @click="toggleActive(f)" :class="f.is_active ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'"
+                  class="flex-1 py-1.5 text-xs rounded">
+            <i :class="f.is_active ? 'fas fa-ban' : 'fas fa-check'"></i>
+          </button>
+          <button @click="del(f)" class="py-1.5 px-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </template>
+    <div x-show="families.length === 0" class="col-span-full bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
+      <i class="fas fa-users text-5xl mb-3"></i>
+      <p>Aucun compte famille. Creez-en un pour commencer.</p>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div x-show="modal.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="modal.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <h3 class="text-xl font-bold mb-4" x-text="modal.editId ? 'Modifier la famille' : 'Nouvelle famille'"></h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nom de la famille *</label>
+          <input type="text" x-model="modal.form.display_name" placeholder="ex: Famille MBUMBA" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Cote *</label>
+          <select x-model="modal.form.side" :disabled="!!modal.editId" class="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100">
+            <option value="groom">Famille du marie</option>
+            <option value="bride">Famille de la mariee</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Login *</label>
+          <input type="text" x-model="modal.form.username" :disabled="!!modal.editId" placeholder="ex: mbumba" class="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <span x-text="modal.editId ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe *'"></span>
+          </label>
+          <input type="text" x-model="modal.form.password" placeholder="min 6 caracteres" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <p x-show="!modal.editId" class="text-xs text-gray-500">
+          <i class="fas fa-info-circle"></i> La famille se connectera sur <code class="bg-gray-100 px-1 rounded">/famille/login/</code>
+        </p>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button @click="modal.show = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+        <button @click="save()" :disabled="modal.saving" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+          <span x-show="!modal.saving">Enregistrer</span>
+          <span x-show="modal.saving"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function familiesApp() {
+  return {
+    families: [],
+    modal: { show: false, editId: null, saving: false, form: {} },
+    async load() {
+      const r = await fetch('/dashboard/api/families/');
+      const data = await r.json();
+      this.families = data.families;
+    },
+    openAdd() {
+      this.modal.editId = null;
+      this.modal.form = { display_name: '', side: 'groom', username: '', password: '' };
+      this.modal.show = true;
+    },
+    openEdit(f) {
+      this.modal.editId = f.id;
+      this.modal.form = { display_name: f.display_name, side: f.side, username: f.username, password: '' };
+      this.modal.show = true;
+    },
+    async save() {
+      if (!this.modal.form.display_name.trim()) { alert('Nom requis'); return; }
+      this.modal.saving = true;
+      try {
+        let url, body;
+        if (this.modal.editId) {
+          url = `/dashboard/api/families/${this.modal.editId}/update/`;
+          body = { display_name: this.modal.form.display_name };
+          if (this.modal.form.password) body.new_password = this.modal.form.password;
+        } else {
+          url = '/dashboard/api/families/create/';
+          body = this.modal.form;
+        }
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Erreur');
+        this.modal.show = false;
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Enregistre', type: 'success' } }));
+      } catch (e) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: e.message, type: 'error' } }));
+      } finally { this.modal.saving = false; }
+    },
+    async revoke(f) {
+      if (!confirm(`Revoquer ${f.display_name} ?`)) return;
+      await fetch(`/dashboard/api/families/${f.id}/revoke/`, {
+        method: 'POST', headers: { 'X-CSRFToken': this.csrf() },
+      });
+      await this.load();
+    },
+    async toggleActive(f) {
+      await fetch(`/dashboard/api/families/${f.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ is_active: !f.is_active }),
+      });
+      await this.load();
+    },
+    async del(f) {
+      if (!confirm(`Supprimer ${f.display_name} ?`)) return;
+      await fetch(`/dashboard/api/families/${f.id}/delete/`, {
+        method: 'POST', headers: { 'X-CSRFToken': this.csrf() },
+      });
+      await this.load();
+    },
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

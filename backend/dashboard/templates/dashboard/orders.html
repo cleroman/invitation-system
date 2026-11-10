@@ -1,0 +1,127 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Commandes - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6" x-data="ordersApp()" x-init="load()">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Commandes de boissons</h1>
+    <p class="text-gray-500 text-sm">Suivi en temps reel des commandes des invites</p>
+  </div>
+
+  <!-- Compteurs -->
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500">
+      <p class="text-xs text-gray-500 uppercase">En attente</p>
+      <p class="text-3xl font-bold text-yellow-600" x-text="counts.pending">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+      <p class="text-xs text-gray-500 uppercase">En preparation</p>
+      <p class="text-3xl font-bold text-blue-600" x-text="counts.preparing">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-xs text-gray-500 uppercase">Servies</p>
+      <p class="text-3xl font-bold text-green-600" x-text="counts.served">-</p>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="mb-4 flex gap-2">
+    <button @click="filter = 'all'; load()" :class="filter === 'all' ? 'bg-brand-600 text-white' : 'bg-white text-gray-700'"
+            class="px-4 py-2 rounded-lg shadow-sm">Toutes</button>
+    <button @click="filter = 'pending'; load()" :class="filter === 'pending' ? 'bg-yellow-600 text-white' : 'bg-white text-gray-700'"
+            class="px-4 py-2 rounded-lg shadow-sm">En attente</button>
+    <button @click="filter = 'preparing'; load()" :class="filter === 'preparing' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'"
+            class="px-4 py-2 rounded-lg shadow-sm">Preparation</button>
+    <button @click="filter = 'served'; load()" :class="filter === 'served' ? 'bg-green-600 text-white' : 'bg-white text-gray-700'"
+            class="px-4 py-2 rounded-lg shadow-sm">Servies</button>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <table class="w-full">
+      <thead class="bg-gray-50 border-b">
+        <tr>
+          <th class="text-left px-4 py-3 text-xs uppercase text-gray-500">Invite</th>
+          <th class="text-left px-4 py-3 text-xs uppercase text-gray-500">Boisson</th>
+          <th class="text-center px-4 py-3 text-xs uppercase text-gray-500">Qte</th>
+          <th class="text-center px-4 py-3 text-xs uppercase text-gray-500">Statut</th>
+          <th class="text-left px-4 py-3 text-xs uppercase text-gray-500">Note</th>
+          <th class="text-right px-4 py-3 text-xs uppercase text-gray-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="o in orders" :key="o.id">
+          <tr class="border-b hover:bg-gray-50">
+            <td class="px-4 py-3">
+              <div class="font-medium" x-text="o.guest_name"></div>
+              <div class="text-xs text-gray-500" x-text="o.guest_table"></div>
+            </td>
+            <td class="px-4 py-3">
+              <div x-text="o.drink_name"></div>
+              <div class="text-xs text-gray-500" x-text="o.drink_category"></div>
+            </td>
+            <td class="px-4 py-3 text-center font-bold" x-text="o.quantity"></td>
+            <td class="px-4 py-3 text-center">
+              <span :class="{
+                'bg-yellow-100 text-yellow-700': o.status === 'pending',
+                'bg-blue-100 text-blue-700': o.status === 'preparing',
+                'bg-green-100 text-green-700': o.status === 'served',
+                'bg-gray-100 text-gray-600': o.status === 'cancelled',
+              }" class="px-2 py-1 rounded-full text-xs font-medium" x-text="o.status_label"></span>
+            </td>
+            <td class="px-4 py-3 text-xs text-gray-600" x-text="o.note || '-'"></td>
+            <td class="px-4 py-3 text-right">
+              <div class="inline-flex gap-1">
+                <button x-show="o.status === 'pending'" @click="updateStatus(o, 'preparing')"
+                        class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200">Preparer</button>
+                <button x-show="o.status === 'preparing'" @click="updateStatus(o, 'served')"
+                        class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200">Servi</button>
+                <button x-show="o.status !== 'served' && o.status !== 'cancelled'" @click="updateStatus(o, 'cancelled')"
+                        class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">Annuler</button>
+              </div>
+            </td>
+          </tr>
+        </template>
+        <tr x-show="orders.length === 0">
+          <td colspan="6" class="text-center py-8 text-gray-400">
+            <i class="fas fa-inbox text-4xl mb-2"></i>
+            <p>Aucune commande</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+function ordersApp() {
+  return {
+    orders: [],
+    counts: { pending: 0, preparing: 0, served: 0 },
+    filter: 'all',
+    async load() {
+      const r = await fetch(`/dashboard/api/orders/?status=${this.filter}`);
+      const data = await r.json();
+      this.orders = data.orders;
+      this.counts = data.counts;
+    },
+    async updateStatus(o, status) {
+      const r = await fetch(`/dashboard/api/orders/${o.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ status }),
+      });
+      if (r.ok) {
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Statut mis a jour', type: 'success' } }));
+      }
+    },
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+setInterval(() => { if (window.Alpine && document.querySelector('[x-data*="ordersApp"]')) { location.reload ? null : null; } }, 999999);
+</script>
+{% endblock %}

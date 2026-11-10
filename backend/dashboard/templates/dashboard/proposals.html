@@ -1,0 +1,135 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Propositions - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6" x-data="proposalsApp()" x-init="load()">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Propositions des familles</h1>
+    <p class="text-gray-500 text-sm">Approuvez ou refusez les demandes</p>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500">
+      <p class="text-xs text-gray-500 uppercase">En attente</p>
+      <p class="text-3xl font-bold text-yellow-600" x-text="counts.pending">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-xs text-gray-500 uppercase">Approuvees</p>
+      <p class="text-3xl font-bold text-green-600" x-text="counts.approved">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500">
+      <p class="text-xs text-gray-500 uppercase">Refusees</p>
+      <p class="text-3xl font-bold text-red-600" x-text="counts.rejected">-</p>
+    </div>
+  </div>
+
+  <div class="mb-4 flex gap-2 flex-wrap">
+    <button @click="filter = 'pending'" :class="filter === 'pending' ? 'bg-brand-600 text-white' : 'bg-white text-gray-700'" class="px-4 py-2 rounded-lg shadow-sm text-sm">En attente</button>
+    <button @click="filter = 'approved'" :class="filter === 'approved' ? 'bg-green-600 text-white' : 'bg-white text-gray-700'" class="px-4 py-2 rounded-lg shadow-sm text-sm">Approuvees</button>
+    <button @click="filter = 'rejected'" :class="filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-white text-gray-700'" class="px-4 py-2 rounded-lg shadow-sm text-sm">Refusees</button>
+    <button @click="filter = 'all'" :class="filter === 'all' ? 'bg-gray-700 text-white' : 'bg-white text-gray-700'" class="px-4 py-2 rounded-lg shadow-sm text-sm">Toutes</button>
+  </div>
+
+  <div class="space-y-3">
+    <template x-for="p in filteredProposals" :key="p.id">
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4"
+           :class="p.status === 'pending' ? 'border-yellow-400' : (p.status === 'approved' ? 'border-green-400' : 'border-red-400')">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span :class="p.family_side === 'groom' ? 'bg-indigo-100 text-indigo-700' : 'bg-pink-100 text-pink-700'"
+                    class="px-2 py-0.5 rounded text-xs font-medium" x-text="p.family_label"></span>
+              <span class="font-bold text-gray-800" x-text="p.action_label"></span>
+            </div>
+            <p class="text-sm text-gray-600">
+              <template x-if="p.target_table_name">
+                <span>Table : <strong x-text="p.target_table_name"></strong></span>
+              </template>
+              <template x-if="p.target_guest_name">
+                <span>Invite : <strong x-text="p.target_guest_name"></strong></span>
+              </template>
+              <template x-if="p.payload">
+                <span class="text-xs text-gray-500 ml-2" x-text="p.payload"></span>
+              </template>
+            </p>
+            <p class="text-xs text-gray-500 mt-1" x-show="p.reason">
+              <i class="fas fa-quote-left"></i> <span x-text="p.reason"></span>
+            </p>
+          </div>
+          <span :class="{
+            'bg-yellow-100 text-yellow-700': p.status === 'pending',
+            'bg-green-100 text-green-700': p.status === 'approved',
+            'bg-red-100 text-red-700': p.status === 'rejected',
+          }" class="px-2 py-1 rounded text-xs font-medium whitespace-nowrap" x-text="p.status_label"></span>
+        </div>
+        <div class="flex items-center justify-between pt-3 border-t">
+          <p class="text-xs text-gray-400" x-text="p.created_at ? new Date(p.created_at).toLocaleString('fr-FR') : ''"></p>
+          <div x-show="p.status === 'pending'" class="flex gap-2">
+            <button @click="reject(p)" class="px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200">
+              <i class="fas fa-times"></i> Refuser
+            </button>
+            <button @click="approve(p)" class="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700">
+              <i class="fas fa-check"></i> Approuver
+            </button>
+          </div>
+          <div x-show="p.status !== 'pending'" class="text-xs text-gray-500" x-text="p.admin_note || ''"></div>
+        </div>
+      </div>
+    </template>
+    <div x-show="filteredProposals.length === 0" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
+      <i class="fas fa-inbox text-5xl mb-3"></i>
+      <p x-text="filter === 'pending' ? 'Aucune proposition en attente' : 'Aucune proposition'"></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function proposalsApp() {
+  return {
+    proposals: [],
+    counts: { pending: 0, approved: 0, rejected: 0 },
+    filter: 'pending',
+    async load() {
+      const r = await fetch('/dashboard/api/proposals/');
+      const data = await r.json();
+      this.proposals = data.proposals;
+      this.counts = data.counts;
+    },
+    get filteredProposals() {
+      if (this.filter === 'all') return this.proposals;
+      return this.proposals.filter(p => p.status === this.filter);
+    },
+    async approve(p) {
+      const note = prompt('Note (optionnel) :') || '';
+      const r = await fetch(`/dashboard/api/proposals/${p.id}/approve/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ admin_note: note }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: data.error, type: 'error' } }));
+        return;
+      }
+      await this.load();
+      window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Proposition approuvee', type: 'success' } }));
+    },
+    async reject(p) {
+      const note = prompt('Raison du refus :') || '';
+      await fetch(`/dashboard/api/proposals/${p.id}/reject/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ admin_note: note }),
+      });
+      await this.load();
+      window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Proposition refusee', type: 'info' } }));
+    },
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

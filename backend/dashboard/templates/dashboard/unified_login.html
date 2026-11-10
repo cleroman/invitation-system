@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion - Mariage Juguel & Viviane</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Dancing+Script:wght@600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a0f1f 0%, #2d1a3a 25%, #4a2545 50%, #7d3a1a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      animation: floatOrb 20s ease-in-out infinite;
+    }
+    .bg-orb.orb-1 { width: 400px; height: 400px; background: #c25e25; top: -100px; left: -100px; animation-delay: 0s; }
+    .bg-orb.orb-2 { width: 500px; height: 500px; background: #d87a9a; bottom: -150px; right: -150px; animation-delay: 5s; }
+    .bg-orb.orb-3 { width: 350px; height: 350px; background: #6B9BC0; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: 10s; }
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+    }
+
+    .login-card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 460px;
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.15);
+      animation: cardAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes cardAppear {
+      from { opacity: 0; transform: translateY(30px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .login-header { text-align: center; margin-bottom: 28px; }
+    .login-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 76px;
+      height: 76px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #c25e25 0%, #a04a1e 100%);
+      box-shadow: 0 10px 30px rgba(194, 94, 37, 0.4);
+      margin-bottom: 20px;
+      animation: iconPulse 3s ease-in-out infinite;
+    }
+    .login-icon i { font-size: 34px; color: white; }
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(194, 94, 37, 0.4); }
+      50% { transform: scale(1.05); box-shadow: 0 15px 40px rgba(194, 94, 37, 0.5); }
+    }
+
+    .login-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 30px;
+      font-weight: 700;
+      color: #2d1a3a;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+    .login-subtitle {
+      font-size: 11px;
+      color: #8a7a8a;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .role-badges {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .role-admin { background: #fef3c7; color: #92400e; }
+    .role-controller { background: #dbeafe; color: #1e40af; }
+    .role-family { background: #fce7f3; color: #9f1239; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #5a4a5a;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .form-input-wrapper { position: relative; }
+    .form-input-wrapper i {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #b8a8b8;
+      font-size: 14px;
+      transition: color 0.2s;
+      pointer-events: none;
+    }
+    .form-input {
+      width: 100%;
+      padding: 14px 16px 14px 44px;
+      border: 2px solid #ede4ed;
+      border-radius: 12px;
+      font-size: 14px;
+      color: #2d1a3a;
+      background: #fdfcfe;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #c25e25;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(194, 94, 37, 0.1);
+    }
+    .form-input-wrapper:focus-within i { color: #c25e25; }
+
+    .error-box {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      border-left: 4px solid #dc2626;
+      color: #7f1d1d;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      animation: shake 0.5s ease-out;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #c25e25 0%, #a04a1e 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 8px 24px rgba(194, 94, 37, 0.35);
+      font-family: inherit;
+      position: relative;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .btn-submit::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.6s;
+    }
+    .btn-submit:hover::before { left: 100%; }
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(194, 94, 37, 0.45);
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #f0e6f0;
+    }
+    .login-footer-text {
+      font-size: 11px;
+      color: #b8a8b8;
+      line-height: 1.7;
+    }
+
+    .ornament {
+      text-align: center;
+      margin: 18px 0;
+      color: #d4c4d4;
+      font-size: 11px;
+      letter-spacing: 8px;
+    }
+
+    .guest-info {
+      margin-top: 20px;
+      padding: 14px;
+      background: linear-gradient(135deg, #fef5f8, #f4f9fd);
+      border-left: 3px solid #c25e25;
+      border-radius: 10px;
+      font-size: 11px;
+      color: #7a6a7a;
+      line-height: 1.6;
+    }
+    .guest-info strong { color: #c25e25; }
+
+    @media (max-width: 500px) {
+      .login-card { padding: 36px 26px; }
+      .login-title { font-size: 24px; }
+      .login-icon { width: 64px; height: 64px; }
+      .login-icon i { font-size: 28px; }
+    }
+
+    .btn-submit.loading { pointer-events: none; opacity: 0.8; }
+    .btn-submit.loading i { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+  <div class="grid-overlay"></div>
+
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-icon">
+        <i class="fas fa-shield-halved"></i>
+      </div>
+      <h1 class="login-title">Acces Securise</h1>
+      <p class="login-subtitle">Mariage Juguel & Viviane</p>
+    </div>
+
+    <div class="role-badges">
+      <span class="role-badge role-admin"><i class="fas fa-crown"></i> Admin</span>
+      <span class="role-badge role-controller"><i class="fas fa-qrcode"></i> Controleur</span>
+      <span class="role-badge role-family"><i class="fas fa-users"></i> Famille</span>
+    </div>
+
+    <div class="ornament">&#10022; &#10087; &#10022;</div>
+
+    {% if error %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-circle" style="margin-top: 2px;"></i>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <form method="post" id="loginForm">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+
+      <div class="form-group">
+        <label for="username" class="form-label">Identifiant</label>
+        <div class="form-input-wrapper">
+          <input type="text" name="username" id="username" required autofocus
+                 class="form-input" placeholder="Votre identifiant" autocomplete="username">
+          <i class="fas fa-user"></i>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Mot de passe</label>
+        <div class="form-input-wrapper">
+          <input type="password" name="password" id="password" required
+                 class="form-input" placeholder="Votre mot de passe" autocomplete="current-password">
+          <i class="fas fa-lock"></i>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <span id="btnText">Se connecter</span>
+        <i class="fas fa-arrow-right" id="btnIcon" style="margin-left: 10px;"></i>
+      </button>
+    </form>
+
+    <div class="guest-info">
+      <i class="fas fa-info-circle" style="color: #c25e25; margin-right: 4px;"></i>
+      <strong>Vous etes invite(e) ?</strong><br>
+      Utilisez directement le lien recu par WhatsApp ou SMS. Aucune connexion n'est necessaire.
+    </div>
+
+    <div class="login-footer">
+      <p class="login-footer-text">
+        <i class="fas fa-shield-alt" style="color: #c25e25; margin-right: 4px;"></i>
+        Connexion securisee &middot; Session unique par appareil
+      </p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', function() {
+      const btn = document.getElementById('submitBtn');
+      const text = document.getElementById('btnText');
+      const icon = document.getElementById('btnIcon');
+      btn.classList.add('loading');
+      text.textContent = 'Connexion...';
+      icon.className = 'fas fa-spinner';
+    });
+  </script>
+</body>
+</html>

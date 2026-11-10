@@ -1,0 +1,227 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Tables - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6" x-data="tablesApp()" x-init="load()">
+
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Configuration des tables</h1>
+      <p class="text-gray-500 text-sm">Gerez la disposition et les places de chaque table</p>
+    </div>
+    <button @click="openAdd()" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-2">
+      <i class="fas fa-plus"></i> Nouvelle table
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide">Total tables</p>
+      <p class="text-3xl font-bold text-blue-600" x-text="stats.total_tables">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide">Capacite totale</p>
+      <p class="text-3xl font-bold text-purple-600" x-text="stats.total_capacity">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide">Places utilisees</p>
+      <p class="text-3xl font-bold text-green-600" x-text="stats.total_assigned">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide">Places libres</p>
+      <p class="text-3xl font-bold text-orange-600" x-text="stats.total_capacity - stats.total_assigned">-</p>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="mb-4 flex gap-2 flex-wrap">
+    <button @click="filter = 'all'" :class="filter === 'all' ? 'bg-brand-600 text-white' : 'bg-white text-gray-700'"
+            class="px-4 py-2 rounded-lg shadow-sm text-sm">Toutes (<span x-text="tables.length"></span>)</button>
+    <button @click="filter = 'neutral'" :class="filter === 'neutral' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'"
+            class="px-4 py-2 rounded-lg shadow-sm text-sm">Neutres (<span x-text="count('neutral')"></span>)</button>
+    <button @click="filter = 'groom'" :class="filter === 'groom' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'"
+            class="px-4 py-2 rounded-lg shadow-sm text-sm">Famille Marie (<span x-text="count('groom')"></span>)</button>
+    <button @click="filter = 'bride'" :class="filter === 'bride' ? 'bg-pink-600 text-white' : 'bg-white text-gray-700'"
+            class="px-4 py-2 rounded-lg shadow-sm text-sm">Famille Mariee (<span x-text="count('bride')"></span>)</button>
+  </div>
+
+  <!-- Grille de tables -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <template x-for="t in filteredTables" :key="t.id">
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden border-t-4"
+           :class="{
+             'border-blue-400': t.family === 'neutral',
+             'border-indigo-400': t.family === 'groom',
+             'border-pink-400': t.family === 'bride',
+           }">
+        <div class="p-4">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <h3 class="font-bold text-lg text-gray-800" x-text="t.name"></h3>
+              <p class="text-xs" :class="{
+                'text-blue-600': t.family === 'neutral',
+                'text-indigo-600': t.family === 'groom',
+                'text-pink-600': t.family === 'bride',
+              }" x-text="t.family_label"></p>
+            </div>
+            <span :class="t.is_full ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'"
+                  class="px-2 py-1 rounded-full text-xs font-medium"
+                  x-text="t.is_full ? 'Pleine' : t.available_seats + ' libres'"></span>
+          </div>
+
+          <div class="flex items-center gap-2 mb-3">
+            <div class="flex-1">
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full transition-all"
+                     :class="t.guests_count / t.capacity >= 1 ? 'bg-red-500' : (t.guests_count / t.capacity >= 0.7 ? 'bg-orange-500' : 'bg-green-500')"
+                     :style="`width: ${Math.min(100, (t.guests_count / t.capacity) * 100)}%`"></div>
+              </div>
+            </div>
+            <span class="text-xs font-semibold text-gray-600 whitespace-nowrap">
+              <span x-text="t.guests_count"></span>/<span x-text="t.capacity"></span>
+            </span>
+          </div>
+
+          <p class="text-xs text-gray-500 mb-3" x-text="t.notes || 'Aucune note'"></p>
+        </div>
+
+        <div class="flex border-t">
+          <button @click="openEdit(t)" class="flex-1 py-2 text-xs text-gray-700 hover:bg-gray-50 border-r">
+            <i class="fas fa-edit"></i> Editer
+          </button>
+          <button @click="toggle(t)" :class="t.is_active ? 'text-yellow-600 hover:bg-yellow-50' : 'text-green-600 hover:bg-green-50'"
+                  class="flex-1 py-2 text-xs border-r">
+            <i :class="t.is_active ? 'fas fa-ban' : 'fas fa-check'"></i>
+            <span x-text="t.is_active ? 'Desactiver' : 'Activer'"></span>
+          </button>
+          <button @click="del(t)" class="flex-1 py-2 text-xs text-red-600 hover:bg-red-50">
+            <i class="fas fa-trash"></i> Supprimer
+          </button>
+        </div>
+      </div>
+    </template>
+    <div x-show="filteredTables.length === 0" class="col-span-full bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
+      <i class="fas fa-chair text-5xl mb-3"></i>
+      <p x-show="tables.length === 0">Aucune table. Cliquez sur "Nouvelle table" pour commencer.</p>
+      <p x-show="tables.length > 0">Aucune table ne correspond au filtre.</p>
+    </div>
+  </div>
+
+  <!-- Modal Add/Edit -->
+  <div x-show="modal.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="modal.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <h3 class="text-xl font-bold mb-4" x-text="modal.editId ? 'Modifier la table' : 'Nouvelle table'"></h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nom / Numero *</label>
+          <input type="text" x-model="modal.form.name" placeholder="ex: Table 1, Table d'honneur..." class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Capacite</label>
+            <input type="number" x-model.number="modal.form.capacity" min="1" max="50" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Famille</label>
+            <select x-model="modal.form.family" class="w-full px-3 py-2 border rounded-lg">
+              <option value="neutral">Neutre / partagee</option>
+              <option value="groom">Famille du marie</option>
+              <option value="bride">Famille de la mariee</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <input type="text" x-model="modal.form.notes" placeholder="ex: pres de la piste de danse" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" x-model="modal.form.is_active" class="rounded">
+          <span class="text-sm text-gray-700">Table active</span>
+        </label>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button @click="modal.show = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+        <button @click="save()" :disabled="modal.saving" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+          <span x-show="!modal.saving">Enregistrer</span>
+          <span x-show="modal.saving"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function tablesApp() {
+  return {
+    tables: [],
+    stats: { total_tables: 0, total_capacity: 0, total_assigned: 0 },
+    filter: 'all',
+    modal: { show: false, editId: null, saving: false, form: {} },
+
+    async load() {
+      const r = await fetch('/dashboard/api/tables/');
+      const data = await r.json();
+      this.tables = data.tables;
+      this.stats = data.stats;
+    },
+    count(family) { return this.tables.filter(t => t.family === family).length; },
+    get filteredTables() {
+      if (this.filter === 'all') return this.tables;
+      return this.tables.filter(t => t.family === this.filter);
+    },
+    openAdd() {
+      this.modal.editId = null;
+      this.modal.form = { name: '', capacity: 8, family: 'neutral', notes: '', is_active: true };
+      this.modal.show = true;
+    },
+    openEdit(t) {
+      this.modal.editId = t.id;
+      this.modal.form = { name: t.name, capacity: t.capacity, family: t.family, notes: t.notes, is_active: t.is_active };
+      this.modal.show = true;
+    },
+    async save() {
+      if (!this.modal.form.name.trim()) { alert('Nom requis'); return; }
+      this.modal.saving = true;
+      try {
+        const url = this.modal.editId ? `/dashboard/api/tables/${this.modal.editId}/update/` : '/dashboard/api/tables/create/';
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify(this.modal.form),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Erreur');
+        this.modal.show = false;
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Enregistre', type: 'success' } }));
+      } catch (e) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: e.message, type: 'error' } }));
+      } finally { this.modal.saving = false; }
+    },
+    async toggle(t) {
+      await fetch(`/dashboard/api/tables/${t.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ is_active: !t.is_active }),
+      });
+      await this.load();
+    },
+    async del(t) {
+      if (!confirm(`Supprimer ${t.name} ? Les invites assis a cette table seront desassignes.`)) return;
+      const r = await fetch(`/dashboard/api/tables/${t.id}/delete/`, {
+        method: 'POST', headers: { 'X-CSRFToken': this.csrf() },
+      });
+      if (r.ok) {
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Supprimee', type: 'success' } }));
+      }
+    },
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Invitation{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fdf8f3', 100: '#faebd7', 200: '#f5d5b3', 300: '#eeb888',
+              400: '#e59a5e', 500: '#d97a3a', 600: '#c25e25', 700: '#a04a1e',
+              800: '#7d3a1a', 900: '#5e2b14',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen" x-data>
+  <!-- Navbar -->
+  <nav class="bg-brand-700 text-white shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/home/" class="text-xl font-bold flex items-center gap-2">
+          <i class="fas fa-envelope-open-text"></i>
+          <span>Invitations</span>
+        </a>
+
+        {# ==================== ADMIN ==================== #}
+        {% if user_role == 'admin' %}
+        <div class="hidden md:flex gap-1 ml-4 flex-wrap">
+          <a href="/dashboard/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800 {% if active == 'admin' %}bg-brand-800{% endif %}">
+            <i class="fas fa-chart-line mr-1"></i> Admin
+          </a>
+          <a href="/dashboard/tables/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800 {% if active == 'tables' %}bg-brand-800{% endif %}">
+            <i class="fas fa-chair mr-1"></i> Tables
+          </a>
+          <a href="/dashboard/confirmations/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800 {% if active == 'conf' %}bg-brand-800{% endif %}">
+            <i class="fas fa-check-circle mr-1"></i> Confirmations
+          </a>
+          <a href="/dashboard/drinks/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800 {% if active == 'drinks' %}bg-brand-800{% endif %}">
+            <i class="fas fa-glass-water mr-1"></i> Boissons
+          </a>
+          <a href="/dashboard/orders/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800 {% if active == 'orders' %}bg-brand-800{% endif %}">
+            <i class="fas fa-receipt mr-1"></i> Commandes
+          </a>
+          <a href="/dashboard/controllers/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-shield-alt mr-1"></i> Controleurs
+          </a>
+          <a href="/dashboard/families/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-users mr-1"></i> Familles
+          </a>
+          <a href="/dashboard/proposals/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-clipboard-check mr-1"></i> Propositions
+          </a>
+          <a href="/dashboard/family-guests/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-inbox mr-1"></i> Demandes
+          </a>
+          <a href="/dashboard/settings/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-cog mr-1"></i> Config
+          </a>
+          <a href="/dashboard/billing/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-credit-card mr-1"></i> Facturation
+          </a>
+          <a href="/controleur/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-camera mr-1"></i> Scanner
+          </a>
+        </div>
+        {% endif %}
+
+        {# ==================== FAMILLE ==================== #}
+        {% if user_role == 'family' %}
+        <div class="hidden md:flex gap-1 ml-4">
+          <a href="/famille/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-home mr-1"></i> Mon espace
+          </a>
+          <a href="/famille/guests/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-user-friends mr-1"></i> Mes invites
+          </a>
+        </div>
+        {% endif %}
+
+        {# ==================== CONTROLEUR ==================== #}
+        {% if user_role == 'controller' %}
+        <div class="hidden md:flex gap-1 ml-4">
+          <a href="/controleur/" class="px-3 py-1.5 rounded-md text-sm hover:bg-brand-800">
+            <i class="fas fa-qrcode mr-1"></i> Scanner QR
+          </a>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <div class="flex items-center gap-3">
+        {% if user.is_authenticated %}
+          <span class="text-sm opacity-90 hidden md:inline">
+            {% if user_role == 'admin' %}<i class="fas fa-crown mr-1"></i>{% endif %}
+            {% if user_role == 'family' %}<i class="fas fa-users mr-1"></i>{% endif %}
+            {% if user_role == 'controller' %}<i class="fas fa-qrcode mr-1"></i>{% endif %}
+            {{ user.username }}
+          </span>
+          <a href="/auth/logout/" class="text-sm px-3 py-1.5 rounded-md bg-brand-800 hover:bg-brand-900">
+            <i class="fas fa-sign-out-alt"></i> <span class="hidden md:inline">Deconnexion</span>
+          </a>
+        {% else %}
+          <a href="/auth/login/" class="text-sm px-3 py-1.5 rounded-md bg-white text-brand-700 hover:bg-gray-100 font-medium">
+            <i class="fas fa-sign-in-alt mr-1"></i> Connexion
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  {% block content %}{% endblock %}
+
+  <!-- Toast global -->
+  <div x-data="{ show: false, msg: '', type: 'success' }"
+       x-on:toast.window="msg = $event.detail.msg; type = $event.detail.type; show = true; setTimeout(() => show = false, 3000)"
+       x-show="show" x-cloak x-transition
+       class="fixed bottom-6 right-6 z-50">
+    <div :class="type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-orange-600')"
+         class="text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3">
+      <i :class="type === 'success' ? 'fas fa-check-circle' : (type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle')"></i>
+      <span x-text="msg"></span>
+    </div>
+  </div>
+</body>
+</html>

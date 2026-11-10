@@ -1,0 +1,158 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Boissons - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6" x-data="drinksApp()" x-init="load()">
+
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Gestion des boissons</h1>
+      <p class="text-gray-500 text-sm">Les invites peuvent commander depuis leur invitation</p>
+    </div>
+    <button @click="openAdd()" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-2">
+      <i class="fas fa-plus"></i> Nouvelle boisson
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <template x-for="d in drinks" :key="d.id">
+      <div class="bg-white rounded-xl shadow-sm p-5 border-l-4" :class="d.is_available && d.is_in_stock ? 'border-green-500' : 'border-gray-300'">
+        <div class="flex items-start justify-between mb-2">
+          <h3 class="font-bold text-gray-800" x-text="d.name"></h3>
+          <span :class="d.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                class="px-2 py-0.5 rounded text-xs font-medium"
+                x-text="d.is_available ? 'Dispo' : 'Desactivee'"></span>
+        </div>
+        <p class="text-xs text-gray-500 mb-2" x-text="d.category_label"></p>
+        <p class="text-sm text-gray-600 mb-3 min-h-[20px]" x-text="d.description || '-'"></p>
+        <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+          <span><i class="fas fa-warehouse mr-1"></i> Stock : <strong x-text="d.stock < 0 ? 'illimite' : d.stock"></strong></span>
+          <span><i class="fas fa-receipt mr-1"></i> <span x-text="d.order_count"></span> commandes</span>
+        </div>
+        <div class="flex gap-1 pt-2 border-t">
+          <button @click="openEdit(d)" class="flex-1 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+            <i class="fas fa-edit"></i> Editer
+          </button>
+          <button @click="toggle(d)" :class="d.is_available ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'"
+                  class="flex-1 py-1.5 text-xs rounded">
+            <i :class="d.is_available ? 'fas fa-ban' : 'fas fa-check'"></i>
+            <span x-text="d.is_available ? 'Desactiver' : 'Activer'"></span>
+          </button>
+          <button @click="del(d)" class="py-1.5 px-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </template>
+    <div x-show="drinks.length === 0" class="col-span-full bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
+      <i class="fas fa-glass-water text-5xl mb-3"></i>
+      <p>Aucune boisson. Cliquez sur "Nouvelle boisson" pour commencer.</p>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div x-show="modal.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="modal.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <h3 class="text-xl font-bold mb-4" x-text="modal.editId ? 'Modifier la boisson' : 'Nouvelle boisson'"></h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+          <input type="text" x-model="modal.form.name" placeholder="ex: Coca-Cola" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <input type="text" x-model="modal.form.description" placeholder="ex: 33cl bien frais" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Categorie</label>
+            <select x-model="modal.form.category" class="w-full px-3 py-2 border rounded-lg">
+              {% for val, label in categories %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Stock (-1 = illimite)</label>
+            <input type="number" x-model.number="modal.form.stock" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+        </div>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" x-model="modal.form.is_available" class="rounded">
+          <span class="text-sm text-gray-700">Disponible a la commande</span>
+        </label>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button @click="modal.show = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+        <button @click="save()" :disabled="modal.saving" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+          <span x-show="!modal.saving">Enregistrer</span>
+          <span x-show="modal.saving"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function drinksApp() {
+  return {
+    drinks: [],
+    modal: { show: false, editId: null, saving: false, form: {} },
+    async load() {
+      const r = await fetch('/dashboard/api/drinks/');
+      const data = await r.json();
+      this.drinks = data.drinks;
+    },
+    openAdd() {
+      this.modal.editId = null;
+      this.modal.form = { name: '', description: '', category: 'soft', stock: -1, is_available: true };
+      this.modal.show = true;
+    },
+    openEdit(d) {
+      this.modal.editId = d.id;
+      this.modal.form = { name: d.name, description: d.description, category: d.category, stock: d.stock, is_available: d.is_available };
+      this.modal.show = true;
+    },
+    async save() {
+      if (!this.modal.form.name.trim()) { alert('Nom requis'); return; }
+      this.modal.saving = true;
+      try {
+        const url = this.modal.editId ? `/dashboard/api/drinks/${this.modal.editId}/update/` : '/dashboard/api/drinks/create/';
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+          body: JSON.stringify(this.modal.form),
+        });
+        if (!r.ok) throw new Error('Erreur');
+        this.modal.show = false;
+        await this.load();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Enregistre', type: 'success' } }));
+      } catch (e) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: e.message, type: 'error' } }));
+      } finally { this.modal.saving = false; }
+    },
+    async toggle(d) {
+      await fetch(`/dashboard/api/drinks/${d.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.csrf() },
+        body: JSON.stringify({ is_available: !d.is_available }),
+      });
+      await this.load();
+    },
+    async del(d) {
+      if (!confirm(`Supprimer ${d.name} ?`)) return;
+      const r = await fetch(`/dashboard/api/drinks/${d.id}/delete/`, {
+        method: 'POST', headers: { 'X-CSRFToken': this.csrf() },
+      });
+      const data = await r.json();
+      await this.load();
+      window.dispatchEvent(new CustomEvent('toast', { detail: { msg: data.message || 'Supprime', type: 'success' } }));
+    },
+    csrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

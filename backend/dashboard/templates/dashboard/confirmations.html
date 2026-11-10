@@ -1,0 +1,111 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Confirmations - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6" x-data="confirmationsApp()" x-init="load()">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Confirmations & Voeux</h1>
+    <p class="text-gray-500 text-sm">Suivi des confirmations de presence et messages des invites</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-xs text-gray-500 uppercase">Confirmes</p>
+      <p class="text-3xl font-bold text-green-600" x-text="stats.total_confirmed">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+      <p class="text-xs text-gray-500 uppercase">Personnes attendues</p>
+      <p class="text-3xl font-bold text-blue-600" x-text="stats.total_persons">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
+      <p class="text-xs text-gray-500 uppercase">En attente</p>
+      <p class="text-3xl font-bold text-orange-600" x-text="stats.total_pending">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-pink-500">
+      <p class="text-xs text-gray-500 uppercase">Voeux recus</p>
+      <p class="text-3xl font-bold text-pink-600" x-text="stats.total_wishes">-</p>
+    </div>
+  </div>
+
+  <!-- Onglets -->
+  <div class="bg-white rounded-xl shadow-sm mb-4">
+    <div class="flex border-b">
+      <button @click="tab = 'conf'" :class="tab === 'conf' ? 'border-b-2 border-brand-600 text-brand-600' : 'text-gray-500'"
+              class="flex-1 py-3 font-medium text-sm">Confirmations</button>
+      <button @click="tab = 'wishes'" :class="tab === 'wishes' ? 'border-b-2 border-brand-600 text-brand-600' : 'text-gray-500'"
+              class="flex-1 py-3 font-medium text-sm">Voeux</button>
+    </div>
+
+    <!-- Confirmations -->
+    <div x-show="tab === 'conf'" class="p-4">
+      <table class="w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="text-left px-4 py-2 text-xs uppercase text-gray-500">Invite</th>
+            <th class="text-center px-4 py-2 text-xs uppercase text-gray-500">Statut</th>
+            <th class="text-center px-4 py-2 text-xs uppercase text-gray-500">Personnes</th>
+            <th class="text-left px-4 py-2 text-xs uppercase text-gray-500">Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="c in confirmations" :key="c.id">
+            <tr class="border-b hover:bg-gray-50">
+              <td class="px-4 py-2 font-medium" x-text="c.guest_name"></td>
+              <td class="px-4 py-2 text-center">
+                <span :class="c.confirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'"
+                      class="px-2 py-1 rounded text-xs" x-text="c.confirmed ? 'Confirme' : 'En attente'"></span>
+              </td>
+              <td class="px-4 py-2 text-center font-bold" x-text="c.num_persons"></td>
+              <td class="px-4 py-2 text-xs text-gray-600" x-text="c.message || '-'"></td>
+            </tr>
+          </template>
+          <tr x-show="confirmations.length === 0">
+            <td colspan="4" class="text-center py-8 text-gray-400">Aucune confirmation</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Voeux -->
+    <div x-show="tab === 'wishes'" class="p-4">
+      <div class="space-y-3">
+        <template x-for="w in wishes" :key="w.id">
+          <div class="bg-gradient-to-br from-pink-50 to-blue-50 rounded-lg p-4 border-l-4 border-pink-400">
+            <div class="flex items-start gap-3">
+              <i class="fas fa-heart text-pink-400 mt-1"></i>
+              <div class="flex-1">
+                <p class="text-gray-800 mb-1" x-text="w.message"></p>
+                <p class="text-xs text-gray-500">&mdash; <span x-text="w.guest_name"></span></p>
+              </div>
+            </div>
+          </div>
+        </template>
+        <div x-show="wishes.length === 0" class="text-center py-8 text-gray-400">
+          <i class="fas fa-heart text-4xl mb-2"></i>
+          <p>Aucun voeu pour le moment</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function confirmationsApp() {
+  return {
+    tab: 'conf',
+    confirmations: [],
+    wishes: [],
+    stats: { total_confirmed: 0, total_persons: 0, total_pending: 0, total_wishes: 0 },
+    async load() {
+      const r = await fetch('/dashboard/api/confirmations/');
+      const data = await r.json();
+      this.confirmations = data.confirmations;
+      this.wishes = data.wishes;
+      this.stats = data.stats;
+    },
+  };
+}
+</script>
+{% endblock %}

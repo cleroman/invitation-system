@@ -1,0 +1,256 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Controleur - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-6" x-data="controlApp()" x-init="init()">
+{% if is_admin_scanner %}
+  <div class="bg-emerald-50 border-l-4 border-emerald-500 p-3 mb-4 rounded">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-shield-alt text-emerald-600"></i>
+        <span class="text-sm font-medium text-emerald-800">Mode scanner (acces admin)</span>
+      </div>
+      <a href="/dashboard/" class="text-sm px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700">
+        <i class="fas fa-arrow-left mr-1"></i>Retour admin
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+
+  <div class="mb-4 flex items-center justify-between">
+    <div>
+      <div><h1 class="text-2xl font-bold text-gray-800">Controle d'acces</h1><p class="text-xs text-gray-500 mt-1">Connecte en tant que <strong>{{ controller_name }}</strong></p></div>
+      <p class="text-gray-500 text-sm">Scannez ou saisissez le token du QR code</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-500">Total scans :</span>
+      <span class="px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-sm font-bold" x-text="history.length"></span>
+      <a href="/auth/logout/" class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium hover:bg-red-200"><i class="fas fa-sign-out-alt"></i> Deconnexion</a>
+    </div>
+  </div>
+
+  <!-- Onglets -->
+  <div class="bg-white rounded-xl shadow-sm mb-4 overflow-hidden">
+    <div class="flex border-b border-gray-200">
+      <button @click="mode = 'camera'" :class="mode === 'camera' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+              class="flex-1 py-3 px-4 font-medium text-sm flex items-center justify-center gap-2 transition">
+        <i class="fas fa-camera"></i> Camera
+      </button>
+      <button @click="mode = 'manual'" :class="mode === 'manual' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+              class="flex-1 py-3 px-4 font-medium text-sm flex items-center justify-center gap-2 transition">
+        <i class="fas fa-keyboard"></i> Saisie manuelle
+      </button>
+    </div>
+
+    <!-- Camera -->
+    <div x-show="mode === 'camera'" class="p-4">
+      <div id="qr-reader" class="rounded-lg overflow-hidden" style="width:100%;"></div>
+      <p class="text-xs text-gray-400 mt-3 text-center">
+        <i class="fas fa-info-circle"></i>
+        Presentez le QR code face a la camera. La detection est automatique.
+      </p>
+      <div class="text-center mt-3">
+        <button @click="restartCamera()" class="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
+          <i class="fas fa-redo"></i> Redemarrer la camera
+        </button>
+      </div>
+    </div>
+
+    <!-- Saisie manuelle -->
+    <div x-show="mode === 'manual'" class="p-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        <i class="fas fa-qrcode mr-1"></i> Token du QR code
+      </label>
+      <div class="flex gap-2">
+        <input type="text" x-model="token" @keydown.enter="checkin()" x-ref="scanInput"
+               placeholder="Collez le token ici..."
+               class="flex-1 px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+        <button @click="checkin()" :disabled="loading || !token.trim()"
+                class="px-6 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 font-medium">
+          <span x-show="!loading"><i class="fas fa-check"></i> Valider</span>
+          <span x-show="loading"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultat -->
+  <div x-show="result" x-cloak x-transition
+       :class="{
+         'bg-green-50 border-green-500': result && result.status === 'ok',
+         'bg-orange-50 border-orange-500': result && result.status === 'already',
+         'bg-red-50 border-red-500': result && result.status === 'unknown',
+       }"
+       class="bg-white rounded-xl shadow-lg p-6 mb-4 border-l-4">
+    <div class="text-center">
+      <i :class="{
+        'fas fa-check-circle text-green-600': result && result.status === 'ok',
+        'fas fa-exclamation-circle text-orange-600': result && result.status === 'already',
+        'fas fa-times-circle text-red-600': result && result.status === 'unknown',
+      }" class="text-6xl mb-3"></i>
+      <h2 class="text-3xl font-bold mb-2" :class="{
+        'text-green-700': result && result.status === 'ok',
+        'text-orange-700': result && result.status === 'already',
+        'text-red-700': result && result.status === 'unknown',
+      }" x-text="result && result.status === 'ok' ? 'ENTREE VALIDEE' : (result && result.status === 'already' ? 'DEJA ENTRE' : 'QR INCONNU')"></h2>
+      <template x-if="result && result.guest">
+        <div class="mt-4">
+          <p class="text-2xl text-gray-800 font-semibold" x-text="result.guest.name"></p>
+          <p class="text-lg text-gray-600 mt-1">
+            <span x-text="result.guest.status_display"></span> &middot;
+            <span x-text="result.guest.table_name || 'sans table'"></span>
+          </p>
+        </div>
+      </template>
+      <template x-if="result && result.status === 'unknown'">
+        <p class="text-gray-600 mt-2">Ce code n'est pas dans la liste des invites.</p>
+      </template>
+    </div>
+  </div>
+
+  <!-- Historique -->
+  <div class="bg-white rounded-xl shadow-sm p-4">
+    <h3 class="font-semibold text-gray-700 mb-3 flex items-center justify-between">
+      <span><i class="fas fa-history mr-1"></i> Scans de cette session</span>
+      <button @click="history = []" class="text-xs text-gray-400 hover:text-gray-600" x-show="history.length > 0">
+        <i class="fas fa-trash"></i> Effacer
+      </button>
+    </h3>
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      <template x-for="(h, i) in history" :key="i">
+        <div class="flex items-center justify-between text-sm py-2 border-b border-gray-100 last:border-0">
+          <div class="flex items-center gap-2">
+            <span :class="h.status === 'ok' ? 'text-green-600' : (h.status === 'already' ? 'text-orange-600' : 'text-red-600')">
+              <i :class="h.status === 'ok' ? 'fas fa-check-circle' : (h.status === 'already' ? 'fas fa-exclamation-circle' : 'fas fa-times-circle')"></i>
+            </span>
+            <span class="font-medium" x-text="h.name || 'Inconnu'"></span>
+            <span class="text-gray-400 text-xs" x-text="h.table"></span>
+          </div>
+          <span class="text-gray-400 text-xs" x-text="h.time"></span>
+        </div>
+      </template>
+      <div x-show="history.length === 0" class="text-center text-gray-400 py-4 text-sm">
+        Aucun scan encore
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- html5-qrcode -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+function controlApp() {
+  return {
+    mode: 'camera',
+    token: '',
+    loading: false,
+    result: null,
+    history: [],
+    scanner: null,
+
+    init() {
+      this.$nextTick(() => this.startCamera());
+    },
+
+    startCamera() {
+      if (this.scanner) return;
+      this.$nextTick(() => {
+        try {
+          this.scanner = new Html5Qrcode("qr-reader");
+          this.scanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => this.onScanSuccess(decodedText),
+            () => {} // ignore les erreurs de scan (bruit)
+          ).catch(err => {
+            console.warn("Camera non disponible :", err);
+            this.mode = 'manual';
+            window.dispatchEvent(new CustomEvent('toast', {
+              detail: { msg: 'Camera indisponible. Utilisez la saisie manuelle.', type: 'info' }
+            }));
+          });
+        } catch (e) {
+          console.warn("Erreur init scanner :", e);
+          this.mode = 'manual';
+        }
+      });
+    },
+
+    async restartCamera() {
+      if (this.scanner) {
+        try { await this.scanner.stop(); } catch(e) {}
+        try { await this.scanner.clear(); } catch(e) {}
+        this.scanner = null;
+      }
+      this.startCamera();
+    },
+
+    onScanSuccess(text) {
+      // Debounce : eviter de scanner 10x le meme QR en 1 seconde
+      const now = Date.now();
+      if (this.lastScan && this.lastScan.text === text && (now - this.lastScan.time) < 2500) return;
+      this.lastScan = { text, time: now };
+
+      // Vibration sur mobile
+      if (navigator.vibrate) navigator.vibrate(150);
+
+      this.processToken(text);
+    },
+
+    async checkin() {
+      const t = this.token.trim();
+      if (!t) return;
+      await this.processToken(t);
+      this.token = '';
+      if (this.$refs.scanInput) this.$refs.scanInput.focus();
+    },
+
+    async processToken(t) {
+      this.loading = true;
+      try {
+        const r = await fetch('/dashboard/api/checkin/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrf() },
+          body: JSON.stringify({ token: t }),
+        });
+        let data;
+        if (r.status === 404) {
+          data = { status: 'unknown' };
+        } else {
+          data = await r.json();
+        }
+        this.result = data;
+        const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        this.history.unshift({
+          status: data.status,
+          name: data.guest ? data.guest.name : 'Inconnu',
+          table: data.guest ? (data.guest.table_name || '') : '',
+          time: now,
+        });
+        if (this.history.length > 50) this.history.pop();
+
+        // Toast selon resultat
+        if (data.status === 'ok') {
+          window.dispatchEvent(new CustomEvent('toast', { detail: { msg: data.guest.name + ' - Entree validee', type: 'success' } }));
+        } else if (data.status === 'already') {
+          window.dispatchEvent(new CustomEvent('toast', { detail: { msg: data.guest.name + ' - Deja entre', type: 'warning' } }));
+        } else {
+          window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'QR inconnu', type: 'error' } }));
+        }
+      } catch (e) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Erreur : ' + e.message, type: 'error' } }));
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    getCsrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}

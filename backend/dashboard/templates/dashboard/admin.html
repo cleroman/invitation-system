@@ -1,0 +1,578 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Dashboard - {{ event_title }}{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6" x-data="adminApp()" x-init="init()">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">{{ event_title }}</h1>
+    <p class="text-gray-500 text-sm">{{ event_date }} &middot; {{ event_venue }}</p>
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide">Total invites</p>
+      <p class="text-3xl font-bold text-gray-800" x-text="stats.total">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide">Entres</p>
+      <p class="text-3xl font-bold text-green-600" x-text="stats.checked_in">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-orange-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide">Restants</p>
+      <p class="text-3xl font-bold text-orange-600" x-text="stats.remaining">-</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
+      <p class="text-gray-500 text-xs uppercase tracking-wide">Personnes attendues</p>
+      <p class="text-3xl font-bold text-purple-600" x-text="stats.total_persons">-</p>
+    </div>
+  </div>
+
+  <div class="mb-6">
+    <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+      <i class="fas fa-th-large text-brand-600"></i> Centre de controle
+    </h2>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+
+      <a href="/dashboard/guests/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-brand-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center">
+            <i class="fas fa-user-friends text-brand-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-brand-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Invites</h3>
+        <p class="text-xs text-gray-500 mt-1">Gerer la liste des invites</p>
+      </a>
+
+      <a href="/dashboard/tables/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-indigo-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+            <i class="fas fa-chair text-indigo-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-indigo-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Tables</h3>
+        <p class="text-xs text-gray-500 mt-1">Configurer les tables de la salle</p>
+      </a>
+
+      <a href="/dashboard/confirmations/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+            <i class="fas fa-check-circle text-green-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-green-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Confirmations</h3>
+        <p class="text-xs text-gray-500 mt-1">RSVP + voeux des invites</p>
+      </a>
+
+      <a href="/dashboard/drinks/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-cyan-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
+            <i class="fas fa-glass-water text-cyan-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-cyan-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Boissons</h3>
+        <p class="text-xs text-gray-500 mt-1">Gerer le catalogue</p>
+      </a>
+
+      <a href="/dashboard/orders/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-yellow-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
+            <i class="fas fa-receipt text-yellow-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-yellow-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Commandes</h3>
+        <p class="text-xs text-gray-500 mt-1">Suivi des commandes boissons</p>
+      </a>
+
+      <a href="/dashboard/controllers/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+            <i class="fas fa-shield-alt text-red-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-red-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Controleurs</h3>
+        <p class="text-xs text-gray-500 mt-1">Comptes de scan (2 a 5 max)</p>
+      </a>
+
+      <a href="/dashboard/families/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-pink-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center">
+            <i class="fas fa-users text-pink-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-pink-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Familles</h3>
+        <p class="text-xs text-gray-500 mt-1">Comptes cote marie / mariee</p>
+      </a>
+
+      <a href="/dashboard/proposals/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+            <i class="fas fa-clipboard-check text-purple-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-purple-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Propositions</h3>
+        <p class="text-xs text-gray-500 mt-1">Valider les demandes des familles</p>
+      </a>
+
+      <a href="/dashboard/family-guests/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <i class="fas fa-inbox text-emerald-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-emerald-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Demandes familles</h3>
+        <p class="text-xs text-gray-500 mt-1">Approuver les invites proposes</p>
+      </a>
+
+      <a href="/dashboard/settings/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-teal-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+            <i class="fas fa-building text-teal-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-teal-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Config salle</h3>
+        <p class="text-xs text-gray-500 mt-1">Capacite, adresse, infos</p>
+      </a>
+
+      <a href="/dashboard/billing/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-lime-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-lime-100 flex items-center justify-center">
+            <i class="fas fa-credit-card text-lime-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-lime-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Facturation</h3>
+        <p class="text-xs text-gray-500 mt-1">Places & paiements</p>
+      </a>
+
+      <a href="/controleur/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-600 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <i class="fas fa-camera text-emerald-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-emerald-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Scanner QR</h3>
+        <p class="text-xs text-gray-500 mt-1">Ouvrir la camera (acces admin)</p>
+      </a>
+
+      <a href="/dashboard/invitations/" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+            <i class="fas fa-envelope-open-text text-amber-600"></i>
+          </div>
+          <i class="fas fa-arrow-right text-gray-300 group-hover:text-amber-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Invitations</h3>
+        <p class="text-xs text-gray-500 mt-1">Envoyer par WhatsApp</p>
+      </a>
+
+      <a href="/auth/switch/famille/" target="_blank" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-rose-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+            <i class="fas fa-user-lock text-rose-600"></i>
+          </div>
+          <i class="fas fa-external-link-alt text-gray-300 group-hover:text-rose-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Espace famille</h3>
+        <p class="text-xs text-gray-500 mt-1">Se connecter en tant que famille</p>
+      </a>
+
+      <a href="/auth/switch/controleur/" target="_blank" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-slate-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+            <i class="fas fa-qrcode text-slate-600"></i>
+          </div>
+          <i class="fas fa-external-link-alt text-gray-300 group-hover:text-slate-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Espace controleur</h3>
+        <p class="text-xs text-gray-500 mt-1">Se connecter en tant que controleur</p>
+      </a>
+
+      <a href="/dashboard/export.csv" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <i class="fas fa-file-csv text-emerald-600"></i>
+          </div>
+          <i class="fas fa-download text-gray-300 group-hover:text-emerald-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Export CSV</h3>
+        <p class="text-xs text-gray-500 mt-1">Telecharger la liste complete</p>
+      </a>
+
+      <a href="/admin/" target="_blank" class="group bg-white rounded-xl shadow-sm p-4 border-l-4 border-gray-500 hover:shadow-md transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+            <i class="fas fa-cog text-gray-600"></i>
+          </div>
+          <i class="fas fa-external-link-alt text-gray-300 group-hover:text-gray-600 transition"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">Admin Django</h3>
+        <p class="text-xs text-gray-500 mt-1">Interface technique</p>
+      </a>
+
+      <button @click="openAddModal()" class="group bg-gradient-to-br from-brand-600 to-brand-700 rounded-xl shadow-sm p-4 text-left hover:shadow-lg transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+            <i class="fas fa-plus text-white"></i>
+          </div>
+        </div>
+        <h3 class="font-bold text-white text-sm">Ajouter un invite</h3>
+        <p class="text-xs text-white/80 mt-1">Creer un nouvel invite rapidement</p>
+      </button>
+
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+    <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+      <div class="flex-1 relative">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input type="text" x-model="search" placeholder="Rechercher un invite..."
+               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <select x-model="filter" class="px-3 py-2 border border-gray-300 rounded-lg">
+          <option value="all">Tous</option>
+          <option value="in">Entres</option>
+          <option value="out">Non entres</option>
+          <option value="couple">Couples</option>
+          <option value="single">Celibataires</option>
+          <option value="blocked">Bloques</option>
+        </select>
+        <button @click="openAddModal()" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-2">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+        <a href="/dashboard/export.csv" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2">
+          <i class="fas fa-file-csv"></i> CSV
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Nom</th>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Statut</th>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Table</th>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Cote</th>
+            <th class="text-left px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Telephone</th>
+            <th class="text-center px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Entree</th>
+            <th class="text-right px-4 py-3 text-xs uppercase tracking-wide text-gray-500 font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="g in filteredGuests" :key="g.id">
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3">
+                <div class="font-medium text-gray-800" x-text="g.name"></div>
+                <div class="text-xs text-gray-400" x-text="g.email || ''"></div>
+              </td>
+              <td class="px-4 py-3">
+                <span :class="g.status === 'couple' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'"
+                      class="px-2 py-1 rounded-full text-xs font-medium" x-text="g.status_display"></span>
+              </td>
+              <td class="px-4 py-3 text-gray-600 text-sm" x-text="g.table_name || '-'"></td>
+              <td class="px-4 py-3">
+                <span :class="{
+                  'bg-indigo-100 text-indigo-700': g.family === 'groom',
+                  'bg-pink-100 text-pink-700': g.family === 'bride',
+                  'bg-gray-100 text-gray-500': !g.family,
+                }" class="px-2 py-1 rounded text-xs font-medium"
+                  x-text="g.family === 'groom' ? 'Marie' : (g.family === 'bride' ? 'Mariee' : '-')"></span>
+              </td>
+              <td class="px-4 py-3 text-gray-600 text-sm" x-text="g.phone || '-'"></td>
+              <td class="px-4 py-3 text-center">
+                <button @click="toggleCheckin(g)" :class="g.is_checked_in ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'"
+                        class="px-3 py-1 rounded-full text-xs font-medium hover:opacity-80">
+                  <i :class="g.is_checked_in ? 'fas fa-check' : 'far fa-circle'"></i>
+                  <span x-text="g.is_checked_in ? 'Oui' : 'Non'"></span>
+                </button>
+              </td>
+              <td class="px-4 py-3 text-right">
+                <div class="inline-flex gap-1">
+                  <a :href="g.whatsapp_url" target="_blank" class="p-2 text-green-600 hover:bg-green-50 rounded" title="WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                  </a>
+                  <a :href="g.invitation_url" target="_blank" class="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Voir invitation">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <button @click="openQrModal(g)" class="p-2 text-purple-600 hover:bg-purple-50 rounded" title="QR Code">
+                    <i class="fas fa-qrcode"></i>
+                  </button>
+                  <button @click="toggleBlock(g)" :class="g.is_blocked ? 'text-green-600 hover:bg-green-50' : 'text-yellow-600 hover:bg-yellow-50'"
+                          class="p-2 rounded" :title="g.is_blocked ? 'Debloquer' : 'Bloquer QR'">
+                    <i :class="g.is_blocked ? 'fas fa-unlock' : 'fas fa-ban'"></i>
+                  </button>
+                  <button @click="openEditModal(g)" class="p-2 text-gray-600 hover:bg-gray-100 rounded" title="Editer">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button @click="deleteGuest(g)" class="p-2 text-red-600 hover:bg-red-50 rounded" title="Supprimer">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="filteredGuests.length === 0">
+            <td colspan="7" class="text-center py-8 text-gray-400">
+              <i class="fas fa-inbox text-4xl mb-2"></i>
+              <p>Aucun invite</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div x-show="modal.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="modal.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <h3 class="text-xl font-bold mb-4" x-text="modal.editId ? 'Modifier l invite' : 'Nouvel invite'"></h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+          <input type="text" x-model="modal.form.name" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+            <select x-model="modal.form.status" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="single">1 personne</option>
+              <option value="couple">Couple (2 pers.)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+              <span>Table</span>
+              <span x-show="selectedTableInfo" class="text-xs font-normal text-gray-500" x-text="selectedTableInfo"></span>
+            </label>
+            <select x-model="modal.form.table_name" @change="updateSelectedTableInfo()" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="">- Sans table -</option>
+              <template x-for="t in tables" :key="t.id">
+                <option :value="t.name" :disabled="t.is_full && t.name !== modal.form.table_name"
+                        x-text="t.name + ' (' + t.guests_count + '/' + t.capacity + (t.is_full ? ' - PLEINE' : ' - ' + t.available_seats + ' libres') + ')'"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Cote famille</label>
+          <select x-model="modal.form.family" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <option value="">Non assigne</option>
+            <option value="groom">Famille du marie</option>
+            <option value="bride">Famille de la mariee</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Telephone</label>
+          <input type="text" x-model="modal.form.phone" placeholder="243812345678" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" x-model="modal.form.email" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-6">
+        <button @click="modal.show = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Annuler</button>
+        <button @click="saveGuest()" :disabled="modal.saving" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50">
+          <span x-show="!modal.saving"><i class="fas fa-save mr-1"></i> Enregistrer</span>
+          <span x-show="modal.saving"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div x-show="qr.show" x-cloak class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+    <div @click.away="qr.show = false" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center">
+      <h3 class="text-xl font-bold mb-2" x-text="qr.guest ? qr.guest.name : ''"></h3>
+      <p class="text-gray-500 text-sm mb-4" x-text="qr.guest ? qr.guest.status_display + ' - ' + (qr.guest.table_name || 'sans table') + (qr.guest && qr.guest.table_name && getTableInfo(qr.guest.table_name) ? ' (' + getTableInfo(qr.guest.table_name) + ')' : '') : ''"></p>
+      <img :src="qr.guest ? qr.guest.qr_url : ''" class="mx-auto w-64 h-64 border rounded-lg">
+      <div class="flex gap-2 mt-6">
+        <a :href="qr.guest ? qr.guest.qr_download_url : '#'" class="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700">
+          <i class="fas fa-download mr-1"></i> Telecharger
+        </a>
+        <button @click="qr.show = false" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function adminApp() {
+  return {
+    guests: [],
+    tables: [],
+    stats: { total: 0, checked_in: 0, remaining: 0, couples: 0, singles: 0, total_persons: 0, blocked: 0 },
+    search: '',
+    filter: 'all',
+    selectedTableInfo: '',
+    modal: { show: false, editId: null, saving: false, form: { name: '', status: 'single', table_name: '', phone: '', email: '', family: '' } },
+    qr: { show: false, guest: null },
+
+    async init() {
+      await Promise.all([this.loadAll(), this.loadTables()]);
+      setInterval(() => this.loadStats(), 5000);
+    },
+
+    async loadAll() {
+      const [g, s] = await Promise.all([
+        fetch('/dashboard/api/guests/').then(r => r.json()),
+        fetch('/dashboard/api/stats/').then(r => r.json()),
+      ]);
+      this.guests = g.guests;
+      this.stats = s;
+    },
+
+    async loadStats() {
+      this.stats = await fetch('/dashboard/api/stats/').then(r => r.json());
+    },
+
+    async loadTables() {
+      try {
+        const r = await fetch('/dashboard/api/tables/');
+        if (!r.ok) return;
+        const data = await r.json();
+        this.tables = (data.tables || []).filter(t => t.is_active);
+      } catch(e) { console.error('loadTables:', e); }
+    },
+
+    updateSelectedTableInfo() {
+      if (!this.modal.form.table_name) {
+        this.selectedTableInfo = '';
+        return;
+      }
+      const t = this.tables.find(x => x.name === this.modal.form.table_name);
+      this.selectedTableInfo = t ? (t.guests_count + '/' + t.capacity + ' - ' + t.available_seats + ' libres') : '';
+    },
+
+    getTableInfo(tableName) {
+      if (!tableName) return '';
+      const t = this.tables.find(x => x.name === tableName);
+      if (!t) return '';
+      return t.guests_count + '/' + t.capacity + ' places, ' + t.available_seats + ' libres';
+    },
+
+    get hasFullTables() {
+      return this.tables.some(t => t.is_full);
+    },
+
+    get filteredGuests() {
+      const q = this.search.toLowerCase();
+      return this.guests.filter(g => {
+        if (q && !g.name.toLowerCase().includes(q) && !(g.phone || '').includes(q) && !(g.table_name || '').toLowerCase().includes(q)) return false;
+        if (this.filter === 'in' && !g.is_checked_in) return false;
+        if (this.filter === 'out' && g.is_checked_in) return false;
+        if (this.filter === 'couple' && g.status !== 'couple') return false;
+        if (this.filter === 'single' && g.status !== 'single') return false;
+        if (this.filter === 'blocked' && !g.is_blocked) return false;
+        return true;
+      });
+    },
+
+    openAddModal() {
+      this.modal.editId = null;
+      this.modal.form = { name: '', status: 'single', table_name: '', phone: '', email: '', family: '' };
+      this.selectedTableInfo = '';
+      this.modal.show = true;
+    },
+
+    openEditModal(g) {
+      this.modal.editId = g.id;
+      this.modal.form = { name: g.name, status: g.status, table_name: g.table_name, phone: g.phone, email: g.email, family: g.family || '' };
+      this.selectedTableInfo = '';
+      this.modal.show = true;
+      setTimeout(() => this.updateSelectedTableInfo(), 50);
+    },
+
+    openQrModal(g) {
+      this.qr.guest = g;
+      this.qr.show = true;
+    },
+
+    async saveGuest() {
+      if (!this.modal.form.name.trim()) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Le nom est requis', type: 'error' } }));
+        return;
+      }
+      this.modal.saving = true;
+      try {
+        const url = this.modal.editId
+          ? `/dashboard/api/guests/${this.modal.editId}/update/`
+          : '/dashboard/api/guests/create/';
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrf() },
+          body: JSON.stringify(this.modal.form),
+        });
+        const data = await r.json();
+        if (r.status === 402 && data.error === 'limit_reached') {
+          window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Limite atteinte. Achetez des places.', type: 'error' } }));
+          this.modal.saving = false;
+          return;
+        }
+        if (!r.ok) throw new Error(data.error || 'Erreur');
+        this.modal.show = false;
+        await Promise.all([this.loadAll(), this.loadTables()]);
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Enregistre', type: 'success' } }));
+      } catch (e) {
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: e.message, type: 'error' } }));
+      } finally {
+        this.modal.saving = false;
+      }
+    },
+
+    async toggleCheckin(g) {
+      const r = await fetch(`/dashboard/api/guests/${g.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrf() },
+        body: JSON.stringify({ is_checked_in: !g.is_checked_in }),
+      });
+      if (r.ok) await this.loadAll();
+    },
+
+    async toggleBlock(g) {
+      const reason = g.is_blocked ? '' : (prompt('Raison du blocage (optionnel):') || '');
+      const r = await fetch(`/dashboard/api/guests/${g.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrf() },
+        body: JSON.stringify({ is_blocked: !g.is_blocked, block_reason: reason }),
+      });
+      if (r.ok) {
+        await this.loadAll();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: g.is_blocked ? 'QR debloque' : 'QR bloque', type: 'success' } }));
+      }
+    },
+
+    async deleteGuest(g) {
+      if (!confirm(`Supprimer ${g.name} ?`)) return;
+      const r = await fetch(`/dashboard/api/guests/${g.id}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': this.getCsrf() },
+      });
+      if (r.ok) {
+        await this.loadAll();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { msg: 'Supprime', type: 'success' } }));
+      }
+    },
+
+    getCsrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : '';
+    },
+  };
+}
+</script>
+{% endblock %}
